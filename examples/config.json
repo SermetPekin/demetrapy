@@ -1,0 +1,9 @@
+{
+  "frequency": "Monthly",
+  "spec": "RSA4",
+  "date_column": "date",
+  "value_column": "value",
+  "decomposition_mode": "Multiplicative",
+  "forecast_horizon": -1,
+  "benchmarking": false
+}
