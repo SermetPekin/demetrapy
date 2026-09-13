@@ -1,4 +1,4 @@
-# seasonal-pri
+# demetrapy
 
 [![CI](https://github.com/SermetPekin/seasonal-pri/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/seasonal-pri/actions/workflows/ci.yml)
 
@@ -24,7 +24,7 @@ python -m pip install -e .
 ```
 
 The pinned `demetra-tstoolkit` 2.2.6 JAR is downloaded from Maven Central on
-the first run and cached in `~/.cache/seasonal-pri`. Set `SEASONAL_PRI_JAR` to
+the first run and cached in `~/.cache/demetrapy`. Set `DEMETRAPY_JAR` to
 use a local JAR instead.
 
 ## Use
@@ -40,21 +40,21 @@ date,value
 Run with defaults (`Monthly`, `RSA4`):
 
 ```bash
-seasonal-pri input.csv --output adjusted.csv
+demetrapy input.csv --output adjusted.csv
 ```
 
 The equivalent fully named form is:
 
 ```bash
-seasonal-pri --data input.csv --config examples/config.json --output adjusted.csv
+demetrapy --data input.csv --config examples/config.json --output adjusted.csv
 ```
 
 Or provide a JSON configuration. The full example includes TRAMO/SEATS,
 calendar effects, user regressors, outliers, interventions, and ramps:
 
 ```bash
-seasonal-pri input.csv --config examples/config.json --output adjusted.csv
-seasonal-pri input.csv --config examples/full_config.json --output adjusted.csv
+demetrapy input.csv --config examples/config.json --output adjusted.csv
+demetrapy input.csv --config examples/full_config.json --output adjusted.csv
 ```
 
 See the [usage guide](USAGE.md) for the complete input, configuration, output,
@@ -78,7 +78,7 @@ ramps, and fixed coefficients.
 The same engine is available from Python:
 
 ```python
-from seasonal_pri import adjust
+from demetrapy import adjust
 
 result = adjust(values, frequency="Monthly", start_year=2019, spec="RSA4")
 seasonally_adjusted = result["sa"]
@@ -126,19 +126,17 @@ python examples/compare_methods.py
 
 ## Plots and Dashboard
 
-Install optional visualization support:
+Plotting support is included in the standard installation:
 
 ```bash
-python -m pip install -e ".[plots]"
-seasonal-pri --data input.csv --plot-output adjustment.png
+demetrapy --data input.csv --plot-output adjustment.png
 ```
 
 For an interactive local interface with CSV uploads, multi-series controls,
 calendar mappings, Plotly charts, diagnostics, messages, and downloads:
 
 ```bash
-python -m pip install -e ".[dashboard]"
-seasonal-pri-dashboard
+demetrapy-dashboard
 ```
 
 ## Test

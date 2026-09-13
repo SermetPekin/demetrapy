@@ -188,7 +188,7 @@ def _pandas() -> Any:
         import pandas as pd
     except ImportError as error:
         raise ImportError(
-            "adjust_dataframe requires pandas; install seasonal-pri[examples]"
+            "pandas is missing; reinstall demetrapy"
         ) from error
     return pd
 

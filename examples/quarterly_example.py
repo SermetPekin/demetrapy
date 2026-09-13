@@ -7,7 +7,7 @@ import random
 
 import pandas as pd
 
-from seasonal_pri import adjust_dataframe
+from demetrapy import adjust_dataframe
 
 
 def create_quarterly_data() -> pd.DataFrame:

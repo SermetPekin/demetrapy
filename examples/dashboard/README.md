@@ -3,8 +3,7 @@
 Launch the dashboard from the repository root:
 
 ```bash
-python -m pip install -e ".[dashboard]"
-seasonal-pri-dashboard
+demetrapy-dashboard
 ```
 
 Use these files in the sidebar:

@@ -1,6 +1,6 @@
 # Configuration Reference
 
-This document describes how `seasonal-pri` configuration maps to JDemetra+
+This document describes how `demetrapy` configuration maps to JDemetra+
 core 2.2.6. For runnable commands and DataFrame examples, see
 [USAGE.md](USAGE.md).
 

@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from seasonal_pri import DataFrameAdjustmentResult, adjust_dataframe
+from demetrapy import DataFrameAdjustmentResult, adjust_dataframe
 
 
 class DataFrameAdjustmentTest(unittest.TestCase):
@@ -31,7 +31,7 @@ class DataFrameAdjustmentTest(unittest.TestCase):
             calls.append((values, options))
             return {name: list(values) for name in ("y", "sa", "t", "s", "i")}
 
-        with patch("seasonal_pri.dataframe.adjust", side_effect=fake_adjust):
+        with patch("demetrapy.dataframe.adjust", side_effect=fake_adjust):
             result = adjust_dataframe(
                 data,
                 calendar_pool=pool,

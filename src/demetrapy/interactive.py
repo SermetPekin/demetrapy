@@ -139,6 +139,6 @@ def _dependencies() -> tuple[Any, Any, Any]:
         from plotly.subplots import make_subplots
     except ImportError as error:
         raise ImportError(
-            "interactive plotting requires pandas and plotly; install seasonal-pri[dashboard]"
+            "a plotting dependency is missing; reinstall demetrapy"
         ) from error
     return go, make_subplots, pd

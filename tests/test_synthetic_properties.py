@@ -2,7 +2,7 @@ import math
 import random
 import unittest
 
-from seasonal_pri import adjust
+from demetrapy import adjust
 
 
 class SyntheticSeasonalityTest(unittest.TestCase):

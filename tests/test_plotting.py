@@ -8,7 +8,7 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from seasonal_pri import AdjustmentResult, OutputSeries, plot_adjustment
+from demetrapy import AdjustmentResult, OutputSeries, plot_adjustment
 
 
 class PlottingTest(unittest.TestCase):

@@ -67,7 +67,7 @@ def _write_csv(
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="seasonal-pri",
+        prog="demetrapy",
         description="Seasonally adjust a regular CSV series with JDemetra+ core.",
     )
     parser.add_argument(
@@ -146,7 +146,7 @@ def run(argv: Sequence[str] | None = None) -> int:
                 plt.show()
         return 0
     except (ImportError, OSError, ValueError, RuntimeError) as error:
-        print(f"seasonal-pri: {error}", file=sys.stderr)
+        print(f"demetrapy: {error}", file=sys.stderr)
         return 2
 
 

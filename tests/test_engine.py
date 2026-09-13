@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from seasonal_pri import COMPACT_COMPONENTS, RESULT_SCHEMA_VERSION
-from seasonal_pri.engine import AdjustmentResult, _jar_path, adjust
+from demetrapy import COMPACT_COMPONENTS, RESULT_SCHEMA_VERSION
+from demetrapy.engine import AdjustmentResult, _jar_path, adjust
 
 
 class PublicContractTest(unittest.TestCase):
@@ -16,7 +16,7 @@ class PublicContractTest(unittest.TestCase):
 
 class JarPathTest(unittest.TestCase):
     def test_rejects_missing_configured_jar(self) -> None:
-        with patch.dict(os.environ, {"SEASONAL_PRI_JAR": "/path/to/missing.jar"}):
+        with patch.dict(os.environ, {"DEMETRAPY_JAR": "/path/to/missing.jar"}):
             with self.assertRaisesRegex(FileNotFoundError, "Unset it"):
                 _jar_path()
 
@@ -24,7 +24,7 @@ class JarPathTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             jar = Path(directory) / "demetra.jar"
             jar.touch()
-            with patch.dict(os.environ, {"SEASONAL_PRI_JAR": str(jar)}):
+            with patch.dict(os.environ, {"DEMETRAPY_JAR": str(jar)}):
                 self.assertEqual(_jar_path(), jar)
 
 

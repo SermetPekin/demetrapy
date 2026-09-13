@@ -67,16 +67,16 @@ class AdjustmentResult:
 
 
 def _jar_path() -> Path:
-    configured = os.environ.get("SEASONAL_PRI_JAR")
+    configured = os.environ.get("DEMETRAPY_JAR")
     if configured:
         jar = Path(configured).expanduser()
         if not jar.is_file():
             raise FileNotFoundError(
-                f"SEASONAL_PRI_JAR does not point to a file: {jar}. "
+                f"DEMETRAPY_JAR does not point to a file: {jar}. "
                 "Unset it to use the automatic JAR download."
             )
         return jar
-    return Path.home() / ".cache" / "seasonal-pri" / Path(JAR_URL).name
+    return Path.home() / ".cache" / "demetrapy" / Path(JAR_URL).name
 
 
 def _ensure_jvm() -> None:

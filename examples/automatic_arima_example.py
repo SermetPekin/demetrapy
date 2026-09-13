@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import random
 
-from seasonal_pri import adjust
+from demetrapy import adjust
 
 
 def create_values() -> list[float]:

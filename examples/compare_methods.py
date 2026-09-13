@@ -8,7 +8,7 @@ import random
 
 import pandas as pd
 
-from seasonal_pri import COMPACT_COMPONENTS, adjust_dataframe
+from demetrapy import COMPACT_COMPONENTS, adjust_dataframe
 
 
 def create_input() -> pd.DataFrame:

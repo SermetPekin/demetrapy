@@ -5,9 +5,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from seasonal_pri.cli import run
-from seasonal_pri.config import AdjustmentConfig
-from seasonal_pri.engine import AdjustmentResult, OutputSeries
+from demetrapy.cli import run
+from demetrapy.config import AdjustmentConfig
+from demetrapy.engine import AdjustmentResult, OutputSeries
 
 
 class ConfigTest(unittest.TestCase):
@@ -34,7 +34,7 @@ class ConfigTest(unittest.TestCase):
 
 
 class CliTest(unittest.TestCase):
-    @patch("seasonal_pri.cli.adjust")
+    @patch("demetrapy.cli.adjust")
     def test_writes_adjusted_csv(self, mock_adjust) -> None:
         mock_adjust.return_value = {
             "y": [10.0, 20.0],
@@ -87,7 +87,7 @@ class CliTest(unittest.TestCase):
             input_path.write_text("when,amount\n2024-01-01,10\n")
             self.assertEqual(run([str(input_path)]), 2)
 
-    @patch("seasonal_pri.cli.adjust")
+    @patch("demetrapy.cli.adjust")
     def test_named_data_and_cli_options_override_config(self, mock_adjust) -> None:
         mock_adjust.return_value = {
             name: [10.0, 20.0] for name in ("y", "sa", "t", "s", "i")
@@ -130,8 +130,8 @@ class CliTest(unittest.TestCase):
     def test_rejects_two_data_file_arguments(self) -> None:
         self.assertEqual(run(["first.csv", "--data", "second.csv"]), 2)
 
-    @patch("seasonal_pri.cli.plot_adjustment")
-    @patch("seasonal_pri.cli.adjust")
+    @patch("demetrapy.cli.plot_adjustment")
+    @patch("demetrapy.cli.adjust")
     def test_plot_output_uses_detailed_result(self, mock_adjust, mock_plot) -> None:
         output_series = OutputSeries((10.0, 20.0), "Monthly", 2024, 1)
         mock_adjust.return_value = AdjustmentResult(

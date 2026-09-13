@@ -1,4 +1,4 @@
-"""Optional Streamlit dashboard for seasonal-pri."""
+"""Streamlit dashboard for demetrapy."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from seasonal_pri.config import AdjustmentConfig
-from seasonal_pri.dataframe import DataFrameAdjustmentResult, adjust_dataframe
-from seasonal_pri.interactive import plot_adjustment_interactive
+from demetrapy.config import AdjustmentConfig
+from demetrapy.dataframe import DataFrameAdjustmentResult, adjust_dataframe
+from demetrapy.interactive import plot_adjustment_interactive
 
 
 def main() -> None:
@@ -18,11 +18,11 @@ def main() -> None:
         import streamlit as st
     except ImportError as error:
         raise ImportError(
-            "the dashboard requires optional dependencies; install seasonal-pri[dashboard]"
+            "a dashboard dependency is missing; reinstall demetrapy"
         ) from error
 
     st.set_page_config(
-        page_title="seasonal-pri", page_icon=":chart_with_upwards_trend:", layout="wide"
+        page_title="demetrapy", page_icon=":chart_with_upwards_trend:", layout="wide"
     )
     st.markdown(
         """
@@ -103,7 +103,7 @@ def main() -> None:
         """,
         unsafe_allow_html=True,
     )
-    st.title("seasonal-pri")
+    st.title("demetrapy")
 
     with st.sidebar:
         st.subheader("Inputs")
@@ -278,13 +278,13 @@ def main() -> None:
                     detailed=True,
                     **options,
                 )
-                st.session_state["seasonal_pri_result"] = result
-                st.session_state["seasonal_pri_targets"] = list(targets)
+                st.session_state["demetrapy_result"] = result
+                st.session_state["demetrapy_targets"] = list(targets)
             except Exception as error:
                 st.error(str(error))
 
-    result = st.session_state.get("seasonal_pri_result")
-    result_targets = st.session_state.get("seasonal_pri_targets", [])
+    result = st.session_state.get("demetrapy_result")
+    result_targets = st.session_state.get("demetrapy_targets", [])
     if not isinstance(result, DataFrameAdjustmentResult) or not result_targets:
         return
 
@@ -405,7 +405,7 @@ def launch() -> None:
         from streamlit.web import cli as streamlit_cli
     except ImportError as error:
         raise ImportError(
-            "the dashboard requires optional dependencies; install seasonal-pri[dashboard]"
+            "a dashboard dependency is missing; reinstall demetrapy"
         ) from error
     sys.argv = [
         "streamlit",

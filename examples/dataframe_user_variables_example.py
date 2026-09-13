@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from seasonal_pri import adjust_dataframe
+from demetrapy import adjust_dataframe
 
 
 def create_inputs() -> tuple[pd.DataFrame, pd.DataFrame]:

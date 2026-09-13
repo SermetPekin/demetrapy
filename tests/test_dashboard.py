@@ -4,7 +4,7 @@ import unittest
 
 import pandas as pd
 
-from seasonal_pri.dashboard import (
+from demetrapy.dashboard import (
     _diagnostics_frame,
     _indexed_frame,
     _model_preprocessing,

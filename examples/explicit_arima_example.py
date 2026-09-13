@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from automatic_arima_example import create_values
-from seasonal_pri import adjust
+from demetrapy import adjust
 
 
 if __name__ == "__main__":

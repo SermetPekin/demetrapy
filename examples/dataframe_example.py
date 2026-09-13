@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from seasonal_pri import adjust
+from demetrapy import adjust
 
 
 def create_input() -> pd.DataFrame:

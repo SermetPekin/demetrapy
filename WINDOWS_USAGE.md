@@ -28,12 +28,12 @@ py -m venv .venv
 .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
 python -m pip install -e .
-seasonal-pri --help
+demetrapy --help
 ```
 
 ## Automatic JAR Download
 
-On the first calculation, `seasonal-pri` downloads this pinned JDemetra+ core
+On the first calculation, `demetrapy` downloads this pinned JDemetra+ core
 artifact from Maven Central:
 
 ```text
@@ -43,7 +43,7 @@ https://repo1.maven.org/maven2/eu/europa/ec/joinup/sat/demetra-tstoolkit/2.2.6/d
 The default Windows cache location is:
 
 ```text
-C:\Users\YOUR_NAME\.cache\seasonal-pri\demetra-tstoolkit-2.2.6.jar
+C:\Users\YOUR_NAME\.cache\demetrapy\demetra-tstoolkit-2.2.6.jar
 ```
 
 The automatic download uses the standard Python networking configuration. In a
@@ -52,7 +52,7 @@ session:
 
 ```bat
 set "HTTPS_PROXY=http://proxy.example.com:8080"
-seasonal-pri input.csv --output adjusted.csv
+demetrapy input.csv --output adjusted.csv
 ```
 
 Do not put proxy passwords or tokens in project configuration files.
@@ -69,22 +69,22 @@ internet access.
 3. Store it in a stable location, for example:
 
 ```text
-C:\Tools\seasonal-pri\demetra-tstoolkit-2.2.6.jar
+C:\Tools\demetrapy\demetra-tstoolkit-2.2.6.jar
 ```
 
-4. Point `seasonal-pri` to that exact file.
+4. Point `demetrapy` to that exact file.
 
 For the current Command Prompt session:
 
 ```bat
-set "SEASONAL_PRI_JAR=C:\Tools\seasonal-pri\demetra-tstoolkit-2.2.6.jar"
-seasonal-pri input.csv --output adjusted.csv
+set "DEMETRAPY_JAR=C:\Tools\demetrapy\demetra-tstoolkit-2.2.6.jar"
+demetrapy input.csv --output adjusted.csv
 ```
 
 Persist it for future Command Prompt sessions:
 
 ```bat
-setx SEASONAL_PRI_JAR "C:\Tools\seasonal-pri\demetra-tstoolkit-2.2.6.jar"
+setx DEMETRAPY_JAR "C:\Tools\demetrapy\demetra-tstoolkit-2.2.6.jar"
 ```
 
 The configured path must identify the JAR file itself, not its directory.
@@ -96,7 +96,7 @@ As an alternative to setting an environment variable, create this directory and
 place the JAR there with its original filename:
 
 ```text
-C:\Users\YOUR_NAME\.cache\seasonal-pri\demetra-tstoolkit-2.2.6.jar
+C:\Users\YOUR_NAME\.cache\demetrapy\demetra-tstoolkit-2.2.6.jar
 ```
 
 The package will detect it and skip the download.
@@ -106,26 +106,26 @@ The package will detect it and skip the download.
 Command Prompt, current session:
 
 ```bat
-set SEASONAL_PRI_JAR=
+set DEMETRAPY_JAR=
 ```
 
 ## Run an Adjustment
 
 ```bat
-seasonal-pri .\input.csv --config .\examples\config.json --output .\adjusted.csv
+demetrapy .\input.csv --config .\examples\config.json --output .\adjusted.csv
 ```
 
 For the advanced TRAMO/SEATS configuration, the input CSV must include the
 `promotion` column referenced by the example:
 
 ```bat
-seasonal-pri .\input.csv --config .\examples\full_config.json --output .\adjusted.csv
+demetrapy .\input.csv --config .\examples\full_config.json --output .\adjusted.csv
 ```
 
 The Python API works identically on Windows:
 
 ```python
-from seasonal_pri import adjust
+from demetrapy import adjust
 
 result = adjust(
     values,
@@ -145,7 +145,7 @@ python -m unittest discover -s tests
 
 ## Troubleshooting
 
-- `SEASONAL_PRI_JAR does not point to a file`: verify the full path, filename,
+- `DEMETRAPY_JAR does not point to a file`: verify the full path, filename,
   and `.jar` extension. Remove the override to return to automatic downloading.
 - `JVMNotFoundException`: install Java and ensure its `bin` directory is on
   `PATH`; restart the terminal afterward.
@@ -153,5 +153,5 @@ python -m unittest discover -s tests
   architectures. Install matching architectures.
 - TLS, certificate, proxy, or timeout errors during JAR download: use the manual
   JAR workflow instead of disabling certificate validation.
-- `seasonal-pri` is not recognized: activate `.venv`, or run
-  `.\.venv\Scripts\seasonal-pri.exe` directly.
+- `demetrapy` is not recognized: activate `.venv`, or run
+  `.\.venv\Scripts\demetrapy.exe` directly.

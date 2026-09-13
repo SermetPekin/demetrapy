@@ -17,7 +17,6 @@ data belongs to a real organization.
 Run it from the repository root:
 
 ```bash
-python -m pip install -e ".[examples]"
 python examples/dataframe_user_variables_example.py
 ```
 

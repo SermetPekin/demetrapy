@@ -6,7 +6,7 @@ groups, defaults, and every supported ARIMA/X11/SEATS option, see the
 
 ## Installation
 
-`seasonal-pri` requires Python 3.9+ and Java 8+.
+`demetrapy` requires Python 3.9+ and Java 8+.
 
 For Command Prompt, proxy-restricted networks, and manual JAR installation, see
 the [Windows usage guide](WINDOWS_USAGE.md).
@@ -20,22 +20,22 @@ python -m pip install -e .
 Confirm that the command is available:
 
 ```bash
-seasonal-pri --help
+demetrapy --help
 ```
 
 On its first adjustment, the package downloads JDemetra+ core 2.2.6 from
-Maven Central and caches it in `~/.cache/seasonal-pri`. No JAR configuration is
+Maven Central and caches it in `~/.cache/demetrapy`. No JAR configuration is
 normally needed. To use a JAR that already exists on your machine, set its
 absolute path:
 
 ```bash
-export SEASONAL_PRI_JAR="$HOME/lib/demetra-tstoolkit-2.2.6.jar"
+export DEMETRAPY_JAR="$HOME/lib/demetra-tstoolkit-2.2.6.jar"
 ```
 
 Clear an incorrect override to restore automatic downloading:
 
 ```bash
-unset SEASONAL_PRI_JAR
+unset DEMETRAPY_JAR
 ```
 
 ## Input CSV
@@ -59,31 +59,31 @@ period.
 Run an X13 adjustment with the default monthly `RSA4` specification:
 
 ```bash
-seasonal-pri input.csv --output adjusted.csv
+demetrapy input.csv --output adjusted.csv
 ```
 
 The data file can instead be named explicitly with `--data` or `-d`:
 
 ```bash
-seasonal-pri --data input.csv --output adjusted.csv
+demetrapy --data input.csv --output adjusted.csv
 ```
 
 Without `--output`, the resulting CSV is written to standard output:
 
 ```bash
-seasonal-pri input.csv
+demetrapy input.csv
 ```
 
 Use `--config` or `-c` to provide adjustment settings:
 
 ```bash
-seasonal-pri input.csv --config examples/config.json --output adjusted.csv
+demetrapy input.csv --config examples/config.json --output adjusted.csv
 ```
 
 The fully named equivalent is:
 
 ```bash
-seasonal-pri \
+demetrapy \
   --data input.csv \
   --config examples/config.json \
   --output adjusted.csv
@@ -112,7 +112,7 @@ configuration. Other advanced settings remain in the config file.
 Run TRAMO/SEATS directly without a config file:
 
 ```bash
-seasonal-pri \
+demetrapy \
   --data monthly_sales.csv \
   --method tramoseats \
   --spec RSAfull \
@@ -122,7 +122,7 @@ seasonal-pri \
 Process quarterly data with custom column names:
 
 ```bash
-seasonal-pri \
+demetrapy \
   --data quarterly_sales.csv \
   --frequency Quarterly \
   --date-column period \
@@ -133,7 +133,7 @@ seasonal-pri \
 Override only the method and preset from an existing configuration:
 
 ```bash
-seasonal-pri \
+demetrapy \
   --data input.csv \
   --config examples/config.json \
   --method tramoseats \
@@ -144,13 +144,13 @@ seasonal-pri \
 Write CSV to standard output for use in a pipeline:
 
 ```bash
-seasonal-pri --data input.csv --config examples/config.json
+demetrapy --data input.csv --config examples/config.json
 ```
 
 Paths containing spaces should be quoted:
 
 ```bash
-seasonal-pri --data "data/monthly sales.csv" --output "results/adjusted sales.csv"
+demetrapy --data "data/monthly sales.csv" --output "results/adjusted sales.csv"
 ```
 
 The CLI processes one value column per invocation. Use `adjust_dataframe()`
@@ -158,17 +158,14 @@ from Python to process multiple target columns in one call.
 
 ## Plotting
 
-Plotting is optional and does not change seasonal-adjustment calculations:
-
-```bash
-python -m pip install -e ".[plots]"
-```
+Plotting support is included in the standard installation and does not change
+seasonal-adjustment calculations.
 
 Save a GUI-style overview containing original and adjusted series, trend,
 seasonal, irregular, configured forecasts, and active effects:
 
 ```bash
-seasonal-pri \
+demetrapy \
   --data input.csv \
   --config examples/config.json \
   --output adjusted.csv \
@@ -178,13 +175,13 @@ seasonal-pri \
 Display the plot instead of only saving it:
 
 ```bash
-seasonal-pri --data input.csv --plot
+demetrapy --data input.csv --plot
 ```
 
 Python callers receive the Matplotlib figure without displaying it:
 
 ```python
-from seasonal_pri import plot_adjustment
+from demetrapy import plot_adjustment
 
 figure = plot_adjustment(detailed_result, target="sales")
 figure.savefig("sales-adjustment.png", dpi=150)
@@ -194,11 +191,10 @@ figure.savefig("sales-adjustment.png", dpi=150)
 
 ## Streamlit Dashboard
 
-Install and launch the optional local dashboard:
+Launch the included local dashboard:
 
 ```bash
-python -m pip install -e ".[dashboard]"
-seasonal-pri-dashboard
+demetrapy-dashboard
 ```
 
 The dashboard accepts a series CSV, an optional JSON configuration, and an
@@ -442,7 +438,7 @@ The same engine can be called directly. `start_period` is one-based, so January
 or the first quarter is `1`.
 
 ```python
-from seasonal_pri import adjust
+from demetrapy import adjust
 
 values = [101.2, 103.8, 107.1]
 result = adjust(
@@ -522,7 +518,7 @@ The calendar pool may begin before and end after the targets. A dictionary maps
 each target column to the pool columns it uses:
 
 ```python
-from seasonal_pri import adjust_dataframe
+from demetrapy import adjust_dataframe
 
 selected_calendars = {
   "sales": ["retail_td"],
@@ -595,7 +591,7 @@ result = adjust(
   numeric observations.
 - `unsupported frequency`, specification, enum, or option: use the exact,
   case-sensitive values documented above.
-- `SEASONAL_PRI_JAR does not point to a file`: run `unset SEASONAL_PRI_JAR` to
+- `DEMETRAPY_JAR does not point to a file`: run `unset DEMETRAPY_JAR` to
   use the automatic download, or set it to an existing local JAR.
 - JVM startup or JAR download errors: verify `java -version` and network access
   to Maven Central.

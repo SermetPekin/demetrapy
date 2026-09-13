@@ -137,6 +137,6 @@ def _plot_dependencies() -> tuple[Any, Any]:
         import pandas as pd
     except ImportError as error:
         raise ImportError(
-            "plotting requires pandas and matplotlib; install seasonal-pri[plots]"
+            "a plotting dependency is missing; reinstall demetrapy"
         ) from error
     return plt, pd

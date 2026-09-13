@@ -3,12 +3,18 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "seasonal-pri"
+name = "demetrapy"
 version = "0.1.0"
 description = "A Python CLI for seasonal adjustment with JDemetra+ core"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = ["JPype1>=1.5,<2"]
+dependencies = [
+	"JPype1>=1.5,<2",
+	"pandas>=2,<4",
+	"matplotlib>=3.8,<4",
+	"plotly>=6,<7",
+	"streamlit>=1.40,<2",
+]
 keywords = ["seasonal-adjustment", "jdemetra", "x13", "tramo-seats", "time-series"]
 classifiers = [
 	"Development Status :: 3 - Alpha",
@@ -25,19 +31,9 @@ Documentation = "https://github.com/SermetPekin/seasonal-pri/blob/main/USAGE.md"
 Issues = "https://github.com/SermetPekin/seasonal-pri/issues"
 Repository = "https://github.com/SermetPekin/seasonal-pri"
 
-[project.optional-dependencies]
-examples = ["pandas>=2,<4"]
-plots = ["pandas>=2,<4", "matplotlib>=3.8,<4"]
-dashboard = [
-	"pandas>=2,<4",
-	"matplotlib>=3.8,<4",
-	"plotly>=6,<7",
-	"streamlit>=1.40,<2",
-]
-
 [project.scripts]
-seasonal-pri = "seasonal_pri.cli:main"
-seasonal-pri-dashboard = "seasonal_pri.dashboard:launch"
+demetrapy = "demetrapy.cli:main"
+demetrapy-dashboard = "demetrapy.dashboard:launch"
 
 [tool.setuptools.packages.find]
 where = ["src"]

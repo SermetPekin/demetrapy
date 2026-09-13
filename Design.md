@@ -1,8 +1,8 @@
-# seasonal-pri Design
+# demetrapy Design
 
 ## Purpose
 
-`seasonal-pri` makes the JDemetra+ seasonal-adjustment engine available to
+`demetrapy` makes the JDemetra+ seasonal-adjustment engine available to
 Python programs and shell workflows. It provides two entry points:
 
 - A command-line interface that reads and writes CSV files.
@@ -42,7 +42,7 @@ flowchart LR
 
 ### CLI Layer
 
-`src/seasonal_pri/cli.py` owns file-oriented behavior:
+`src/demetrapy/cli.py` owns file-oriented behavior:
 
 1. Parse the input, configuration, and output command-line arguments.
 2. Read the configured date and value columns from CSV.
@@ -55,7 +55,7 @@ standard error and exits with status `2`.
 
 ### Configuration
 
-`src/seasonal_pri/config.py` represents configuration as an immutable
+`src/demetrapy/config.py` represents configuration as an immutable
 `AdjustmentConfig` dataclass. It supplies defaults, loads an optional JSON
 object, maps configured regressor columns to arrays, and separates CSV-specific
 settings from options passed to the engine.
@@ -70,7 +70,7 @@ Configuration controls:
 
 ### Python Engine
 
-`src/seasonal_pri/engine.py` is the boundary between Python and Java. Its
+`src/demetrapy/engine.py` is the boundary between Python and Java. Its
 public `adjust()` function:
 
 1. Validates basic Python arguments.
@@ -89,7 +89,7 @@ extracted from a Series or DataFrame.
 
 ### DataFrame Adapter
 
-`src/seasonal_pri/dataframe.py` provides `adjust_dataframe()`. It validates
+`src/demetrapy/dataframe.py` provides `adjust_dataframe()`. It validates
 regular `DatetimeIndex` domains, infers JDemetra+ frequency and start periods,
 checks that a user-defined calendar pool covers the target domain, and runs
 each target independently. The result uses `(series, component)` columns.
@@ -112,10 +112,10 @@ The engine pins `demetra-tstoolkit` to version `2.2.6`. By default, the JAR is
 downloaded from Maven Central on first use and cached at:
 
 ```text
-~/.cache/seasonal-pri/demetra-tstoolkit-2.2.6.jar
+~/.cache/demetrapy/demetra-tstoolkit-2.2.6.jar
 ```
 
-`SEASONAL_PRI_JAR` may point to an existing local JAR instead. The override is
+`DEMETRAPY_JAR` may point to an existing local JAR instead. The override is
 validated before JVM startup.
 
 JPype starts one JVM inside the Python process with the JAR on its classpath.

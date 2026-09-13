@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from seasonal_pri import AdjustmentResult, OutputSeries, plot_adjustment_interactive
+from demetrapy import AdjustmentResult, OutputSeries, plot_adjustment_interactive
 
 
 class InteractivePlotTest(unittest.TestCase):

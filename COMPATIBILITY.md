@@ -2,7 +2,7 @@
 
 ## Runtime Support
 
-`seasonal-pri` supports Python 3.9 or newer and requires a same-architecture
+`demetrapy` supports Python 3.9 or newer and requires a same-architecture
 Java runtime. JDemetra+ core is pinned to `demetra-tstoolkit` 2.2.6 so an
 upstream release cannot silently change calculations.
 
