@@ -4,6 +4,9 @@
 
 `seasonal-pri` requires Python 3.9+ and Java 8+.
 
+For Command Prompt, proxy-restricted networks, and manual JAR installation, see
+the [Windows usage guide](WINDOWS_USAGE.md).
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -17,10 +20,18 @@ seasonal-pri --help
 ```
 
 On its first adjustment, the package downloads JDemetra+ core 2.2.6 from
-Maven Central and caches it in `~/.cache/seasonal-pri`. To use an existing JAR:
+Maven Central and caches it in `~/.cache/seasonal-pri`. No JAR configuration is
+normally needed. To use a JAR that already exists on your machine, set its
+absolute path:
 
 ```bash
-export SEASONAL_PRI_JAR=/path/to/demetra-tstoolkit-2.2.6.jar
+export SEASONAL_PRI_JAR="$HOME/lib/demetra-tstoolkit-2.2.6.jar"
+```
+
+Clear an incorrect override to restore automatic downloading:
+
+```bash
+unset SEASONAL_PRI_JAR
 ```
 
 ## Input CSV
@@ -47,6 +58,12 @@ Run an X13 adjustment with the default monthly `RSA4` specification:
 seasonal-pri input.csv --output adjusted.csv
 ```
 
+The data file can instead be named explicitly with `--data` or `-d`:
+
+```bash
+seasonal-pri --data input.csv --output adjusted.csv
+```
+
 Without `--output`, the resulting CSV is written to standard output:
 
 ```bash
@@ -59,13 +76,90 @@ Use `--config` or `-c` to provide adjustment settings:
 seasonal-pri input.csv --config examples/config.json --output adjusted.csv
 ```
 
+The fully named equivalent is:
+
+```bash
+seasonal-pri \
+  --data input.csv \
+  --config examples/config.json \
+  --output adjusted.csv
+```
+
+### Command-Line Parameters
+
+| Parameter | Short form | Description |
+| --- | --- | --- |
+| positional `input` | | CSV data file; omit when using `--data` |
+| `--data FILE` | `-d` | Explicit CSV data file |
+| `--config FILE` | `-c` | JSON adjustment configuration |
+| `--output FILE` | `-o` | Output CSV; defaults to standard output |
+| `--method METHOD` | | `x13` or `tramoseats` |
+| `--spec NAME` | | JDemetra+ preset such as `RSA4` or `RSAfull` |
+| `--frequency NAME` | | `Monthly`, `Quarterly`, `HalfYearly`, or `Yearly` |
+| `--date-column NAME` | | Input date-column name |
+| `--value-column NAME` | | Input value-column name |
+
+Do not supply both positional `input` and `--data`. Command-line method,
+specification, frequency, and column options override values from the JSON
+configuration. Other advanced settings remain in the config file.
+
+Run TRAMO/SEATS directly without a config file:
+
+```bash
+seasonal-pri \
+  --data monthly_sales.csv \
+  --method tramoseats \
+  --spec RSAfull \
+  --output monthly_sales_adjusted.csv
+```
+
+Process quarterly data with custom column names:
+
+```bash
+seasonal-pri \
+  --data quarterly_sales.csv \
+  --frequency Quarterly \
+  --date-column period \
+  --value-column sales \
+  --output quarterly_sales_adjusted.csv
+```
+
+Override only the method and preset from an existing configuration:
+
+```bash
+seasonal-pri \
+  --data input.csv \
+  --config examples/config.json \
+  --method tramoseats \
+  --spec RSA5 \
+  --output adjusted.csv
+```
+
+Write CSV to standard output for use in a pipeline:
+
+```bash
+seasonal-pri --data input.csv --config examples/config.json
+```
+
+Paths containing spaces should be quoted:
+
+```bash
+seasonal-pri --data "data/monthly sales.csv" --output "results/adjusted sales.csv"
+```
+
+The CLI processes one value column per invocation. Use `adjust_dataframe()`
+from Python to process multiple target columns in one call.
+
 ## Configuration
 
-Configuration is a flat JSON object. Every key is optional.
+Configuration is a JSON object. Existing flat X11 keys remain supported, while
+advanced preprocessing, calendar, regression, and SEATS settings use nested
+objects. Every key is optional.
 
 ```json
 {
   "frequency": "Monthly",
+  "method": "x13",
   "spec": "RSA4",
   "date_column": "date",
   "value_column": "value",
@@ -83,7 +177,8 @@ Configuration is a flat JSON object. Every key is optional.
 | Key | Default | Description |
 | --- | --- | --- |
 | `frequency` | `Monthly` | Observation frequency |
-| `spec` | `RSA4` | X13 preset: `RSAX11` or `RSA0` through `RSA5` |
+| `method` | `x13` | `x13` or `tramoseats` |
+| `spec` | `RSA4` | X13: `RSAX11`, `RSA0`-`RSA5`; TRAMO/SEATS: `RSA0`-`RSA5`, `RSAfull` |
 | `date_column` | `date` | Input CSV date column |
 | `value_column` | `value` | Input CSV numeric column |
 | `decomposition_mode` | preset value | X11 mode, such as `Additive` or `Multiplicative` |
@@ -94,6 +189,79 @@ Configuration is a flat JSON object. Every key is optional.
 | `forecast_horizon` | preset value | Forecast periods; `-1` means one year |
 | `backcast_horizon` | preset value | Backcast periods; `-1` means one year |
 | `benchmarking` | `false` | Enable JDemetra+ benchmarking |
+
+The flat X11 options apply only to `method: "x13"`. See
+[`examples/full_config.json`](examples/full_config.json) for a complete
+TRAMO/SEATS example with calendar and regression variables.
+
+### Preprocessing and SEATS
+
+The shared `preprocessing` object accepts `transform`, `automodel`, `arima`, and
+`estimate` sections. Explicit ARIMA orders use `p`, `d`, `q`, `bp`, `bd`, `bq`,
+and `mean`; supplying them disables automodel. Transform functions are `None`,
+`Auto`, or `Log`. Unknown keys are rejected rather than ignored.
+
+`outlier_detection.types` accepts `AO`, `LS`, `TC`, and `SO`, with optional
+`critical_value` and `tc_rate`. For TRAMO/SEATS, `seats` accepts decomposition
+settings including `approximation_mode`, `estimation_method`, boundaries, and
+`prediction_length`.
+
+### Calendar Variables
+
+`calendar.type` is `None`, `WorkingDays`, or `TradingDays`. X13 uses
+`length_of_period` and test values `None`, `Add`, or `Remove`. TRAMO uses
+`leap_year`, `automatic`, and test values `None`, `Separate_T`, or `Joint_F`.
+Both methods support `stock_day` and Easter settings.
+
+Precomputed user-defined trading-day weights use the pandas API described
+below. They are distinct from ordinary `user_variables`: selected calendar
+columns are passed to JDemetra+ through `TradingDaysSpec.setUserVariables()`.
+Selecting them disables built-in trading-days, working-days, and leap-year
+regressors. Easter remains separate and is included only when explicitly set in
+`calendar.easter`.
+
+Custom calendars are declared inline. Fixed holidays use one-based month/day;
+moving holidays use a JDemetra `DayEvent` such as `EasterMonday`, `GoodFriday`,
+or `Christmas`:
+
+```json
+{
+  "calendar": {
+    "type": "TradingDays",
+    "holidays": "company",
+    "custom_holidays": [
+      {"month": 1, "day": 1},
+      {"event": "EasterMonday", "offset": 0, "weight": 1.0}
+    ]
+  }
+}
+```
+
+### User and Special Variables
+
+A CLI user variable names a numeric CSV column. `effect` is `Undefined`,
+`Series`, `Trend`, `Seasonal`, `SeasonallyAdjusted`, or `Irregular`. Lag bounds
+are inclusive. An optional `coefficient` fixes the coefficient instead of
+estimating it.
+
+```json
+{
+  "user_variables": [
+    {"name": "promotion", "column": "promotion", "effect": "Irregular"}
+  ],
+  "outliers": [{"type": "AO", "date": "2020-04-01"}],
+  "interventions": [
+    {
+      "name": "closure",
+      "sequences": [{"start": "2020-03-01", "end": "2020-05-31"}]
+    }
+  ],
+  "ramps": [{"start": "2021-01-01", "end": "2021-12-31"}]
+}
+```
+
+`fixed_coefficients` also accepts JDemetra regression names. User-variable
+names use `group@name` in that map; the default group is `user`.
 
 For a CSV with custom columns:
 
@@ -150,6 +318,122 @@ result = adjust(
 seasonally_adjusted = result["sa"]
 ```
 
+### Detailed Results
+
+The default result remains the five primary component lists. Set
+`detailed=True` to receive an `AdjustmentResult` containing:
+
+| Attribute | Content |
+| --- | --- |
+| `series` | Every `TsData` output exposed by the selected JDemetra processor |
+| `diagnostics` | Boolean, numeric, and text values from the result dictionary |
+| `messages` | Structured processing information, warnings, and errors |
+| `method` | The selected processor |
+| `specification` | The selected preset name |
+
+Each item in `series` preserves `values`, `frequency`, `start_year`, and
+one-based `start_period`. Common final outputs are `final.y`, `final.sa`,
+`final.t`, `final.s`, and `final.i`; forecast names add `_f`, such as
+`final.sa_f`. Preprocessing outputs include calendar, trading-day, regression,
+outlier, residual, linearized, and forecast effects where the processor
+provides them.
+
+```python
+detailed = adjust(
+  values,
+  frequency="Monthly",
+  start_year=2019,
+  method="x13",
+  forecast_horizon=12,
+  backcast_horizon=12,
+  detailed=True,
+)
+
+sa_forecast = detailed.series["final.sa_f"]
+print(sa_forecast.start_year, sa_forecast.start_period)
+print(detailed.diagnostics)
+print(detailed.messages)
+```
+
+Forecast configuration is method-specific. X13 uses `forecast_horizon` and
+`backcast_horizon`. TRAMO/SEATS uses `seats={"prediction_length": 12}`.
+
+TRAMO/SEATS and a Python-supplied regressor use the same function:
+
+```python
+result = adjust(
+  values,
+  frequency="Monthly",
+  start_year=2019,
+  method="tramoseats",
+  spec="RSAfull",
+  user_variables=[{
+    "name": "promotion",
+    "values": promotion_values,
+    "effect": "Irregular",
+  }],
+  calendar={"type": "WorkingDays", "leap_year": True},
+)
+```
+
+### User-Defined Calendar DataFrame
+
+[The DataFrame variable-pool example](examples/dataframe_user_variables_example.py)
+keeps target series and precomputed calendar weights in separate DataFrames.
+The calendar pool may begin before and end after the targets. A dictionary maps
+each target column to the pool columns it uses:
+
+```python
+from seasonal_pri import adjust_dataframe
+
+selected_calendars = {
+  "sales": ["retail_td"],
+  "orders": ["retail_td", "delivery_td"],
+}
+
+adjusted = adjust_dataframe(
+  observations,
+  calendar_pool=calendar_weights,
+  user_defined_calendars=selected_calendars,
+  method="tramoseats",
+  spec="RSA4",
+)
+```
+
+Both inputs require unique, increasing, regular `DatetimeIndex` values. The API
+infers monthly, quarterly, half-yearly, or yearly frequency and starting
+periods; verifies matching frequencies, finite numeric values, and complete
+target coverage; and preserves the full supplied calendar domain and values in
+JDemetra+'s in-memory `ProcessingContext`. All pool columns are registered, but
+only mapped columns enter each target's trading-day specification. Unmapped
+targets use no user-defined calendar regressors.
+
+The result has two-level columns `(series, component)`, where each target has
+`y`, `sa`, `t`, `s`, and `i`. This path bypasses JDemetra+ workspace XML; no
+workspace file is generated or interpreted.
+
+Set `detailed=True` to receive a `DataFrameAdjustmentResult`. Its `series`
+attribute is one DataFrame containing every JDemetra time-series output, with
+columns `(target, output)`. Diagnostics and messages are mappings keyed by
+target column:
+
+```python
+detailed = adjust_dataframe(
+  observations,
+  method="x13",
+  forecast_horizon=12,
+  detailed=True,
+)
+
+sa = detailed.series[("sales", "final.sa")].dropna()
+sa_forecast = detailed.series[("sales", "final.sa_f")].dropna()
+sales_diagnostics = detailed.diagnostics["sales"]
+```
+
+Because every output keeps its own domain, the DataFrame uses the union of all
+returned dates. Internal preprocessing series may begin earlier or end later
+than `final.*_f`; use each named column's non-null span for its exact domain.
+
 Common X11 options are accepted as keyword arguments:
 
 ```python
@@ -171,7 +455,9 @@ result = adjust(
   CSV header.
 - `invalid number on CSV row`: ensure the configured value column contains only
   numeric observations.
-- `unsupported frequency` or `unsupported X13 specification`: use the exact,
+- `unsupported frequency`, specification, enum, or option: use the exact,
   case-sensitive values documented above.
-- JVM startup or JAR download errors: verify `java -version`, network access to
-  Maven Central, or set `SEASONAL_PRI_JAR` to a local JAR.
+- `SEASONAL_PRI_JAR does not point to a file`: run `unset SEASONAL_PRI_JAR` to
+  use the automatic download, or set it to an existing local JAR.
+- JVM startup or JAR download errors: verify `java -version` and network access
+  to Maven Central.

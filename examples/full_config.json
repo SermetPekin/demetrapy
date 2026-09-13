@@ -1,0 +1,74 @@
+{
+  "frequency": "Monthly",
+  "method": "tramoseats",
+  "spec": "RSAfull",
+  "date_column": "date",
+  "value_column": "value",
+  "benchmarking": false,
+  "preprocessing": {
+    "transform": {
+      "function": "Auto",
+      "preliminary_check": true
+    },
+    "automodel": {
+      "enabled": true,
+      "pcr": 0.95,
+      "accept_default": false
+    },
+    "estimate": {
+      "tolerance": 1e-7,
+      "exact_ml": true
+    }
+  },
+  "calendar": {
+    "type": "TradingDays",
+    "leap_year": true,
+    "test": "Separate_T",
+    "holidays": "company",
+    "custom_holidays": [
+      {"month": 1, "day": 1},
+      {"event": "EasterMonday", "offset": 0},
+      {"month": 12, "day": 25, "weight": 1.0}
+    ],
+    "easter": {
+      "option": "Standard",
+      "duration": 6,
+      "test": true
+    }
+  },
+  "user_variables": [
+    {
+      "name": "promotion",
+      "column": "promotion",
+      "effect": "Irregular",
+      "first_lag": 0,
+      "last_lag": 0
+    }
+  ],
+  "outlier_detection": {
+    "types": ["AO", "LS", "TC"],
+    "critical_value": 3.5,
+    "tc_rate": 0.7
+  },
+  "outliers": [
+    {"type": "AO", "date": "2020-04-01"}
+  ],
+  "interventions": [
+    {
+      "name": "policy-change",
+      "sequences": [
+        {"start": "2021-01-01", "end": "2021-03-31"}
+      ],
+      "delta": 0.0,
+      "seasonal_delta": 0.0
+    }
+  ],
+  "ramps": [
+    {"start": "2022-01-01", "end": "2022-12-31"}
+  ],
+  "seats": {
+    "approximation_mode": "Legacy",
+    "estimation_method": "Burman",
+    "prediction_length": -1
+  }
+}

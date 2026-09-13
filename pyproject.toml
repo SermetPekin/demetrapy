@@ -12,6 +12,7 @@ dependencies = ["JPype1>=1.5,<2"]
 
 [project.optional-dependencies]
 examples = ["pandas>=2,<4"]
+plots = ["pandas>=2,<4", "matplotlib>=3.8,<4"]
 
 [project.scripts]
 seasonal-pri = "seasonal_pri.cli:main"

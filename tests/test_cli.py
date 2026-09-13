@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from seasonal_pri.cli import run
 from seasonal_pri.config import AdjustmentConfig
+from seasonal_pri.engine import AdjustmentResult, OutputSeries
 
 
 class ConfigTest(unittest.TestCase):
@@ -21,6 +22,15 @@ class ConfigTest(unittest.TestCase):
 
         self.assertEqual(config.spec, "RSA5")
         self.assertTrue(config.engine_options()["benchmarking"])
+
+    def test_maps_user_variable_column_to_values(self) -> None:
+        config = AdjustmentConfig(
+            user_variables=[{"name": "promotion", "column": "promo"}]
+        )
+
+        variables = config.engine_options({"promo": [0.0, 1.0]})["user_variables"]
+
+        self.assertEqual(variables, [{"name": "promotion", "values": [0.0, 1.0]}])
 
 
 class CliTest(unittest.TestCase):
@@ -50,6 +60,7 @@ class CliTest(unittest.TestCase):
             start_year=2024,
             start_period=1,
             frequency="Monthly",
+            method="x13",
             spec="RSA4",
             decomposition_mode=None,
             seasonal_filter=None,
@@ -59,6 +70,15 @@ class CliTest(unittest.TestCase):
             forecast_horizon=None,
             backcast_horizon=None,
             benchmarking=False,
+            calendar=None,
+            user_variables=[],
+            outliers=[],
+            interventions=[],
+            ramps=[],
+            fixed_coefficients={},
+            preprocessing=None,
+            outlier_detection=None,
+            seats=None,
         )
 
     def test_rejects_missing_columns(self) -> None:
@@ -66,6 +86,84 @@ class CliTest(unittest.TestCase):
             input_path = Path(directory) / "input.csv"
             input_path.write_text("when,amount\n2024-01-01,10\n")
             self.assertEqual(run([str(input_path)]), 2)
+
+    @patch("seasonal_pri.cli.adjust")
+    def test_named_data_and_cli_options_override_config(self, mock_adjust) -> None:
+        mock_adjust.return_value = {
+            name: [10.0, 20.0] for name in ("y", "sa", "t", "s", "i")
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            data_path = Path(directory) / "quarterly.csv"
+            config_path = Path(directory) / "config.json"
+            output_path = Path(directory) / "output.csv"
+            data_path.write_text("period,sales\n2024-01-01,10\n2024-04-01,20\n")
+            config_path.write_text(json.dumps({"method": "x13", "spec": "RSA4"}))
+
+            exit_code = run(
+                [
+                    "--data",
+                    str(data_path),
+                    "--config",
+                    str(config_path),
+                    "--output",
+                    str(output_path),
+                    "--method",
+                    "tramoseats",
+                    "--spec",
+                    "RSAfull",
+                    "--frequency",
+                    "Quarterly",
+                    "--date-column",
+                    "period",
+                    "--value-column",
+                    "sales",
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        options = mock_adjust.call_args.kwargs
+        self.assertEqual(options["method"], "tramoseats")
+        self.assertEqual(options["spec"], "RSAfull")
+        self.assertEqual(options["frequency"], "Quarterly")
+        self.assertEqual(options["start_period"], 1)
+
+    def test_rejects_two_data_file_arguments(self) -> None:
+        self.assertEqual(run(["first.csv", "--data", "second.csv"]), 2)
+
+    @patch("seasonal_pri.cli.plot_adjustment")
+    @patch("seasonal_pri.cli.adjust")
+    def test_plot_output_uses_detailed_result(self, mock_adjust, mock_plot) -> None:
+        output_series = OutputSeries((10.0, 20.0), "Monthly", 2024, 1)
+        mock_adjust.return_value = AdjustmentResult(
+            series={
+                f"final.{name}": output_series for name in ("y", "sa", "t", "s", "i")
+            },
+            diagnostics={},
+            messages=(),
+            method="x13",
+            specification="RSA4",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "input.csv"
+            output_path = Path(directory) / "output.csv"
+            plot_path = Path(directory) / "plot.png"
+            input_path.write_text("date,value\n2024-01-01,10\n2024-02-01,20\n")
+
+            exit_code = run(
+                [
+                    "--data",
+                    str(input_path),
+                    "--output",
+                    str(output_path),
+                    "--plot-output",
+                    str(plot_path),
+                ]
+            )
+
+        self.assertEqual(exit_code, 0)
+        self.assertTrue(mock_adjust.call_args.kwargs["detailed"])
+        mock_plot.assert_called_once()
+        mock_plot.return_value.savefig.assert_called_once_with(plot_path, dpi=150)
 
 
 if __name__ == "__main__":
