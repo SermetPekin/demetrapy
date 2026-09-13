@@ -63,6 +63,9 @@ Command Prompt instructions.
 
 The supported runtime matrix and result stability policy are documented in
 [COMPATIBILITY.md](COMPATIBILITY.md).
+See [CONFIGURATION.md](CONFIGURATION.md) for processing order, compatible
+option groups, defaults, ARIMA controls, calendars, X11, SEATS, and detailed
+result semantics.
 
 The result contains the original (`y`), seasonally adjusted (`sa`), trend
 (`t`), seasonal (`s`), and irregular (`i`) series.
@@ -92,6 +95,8 @@ examples with both processing engines.
 The [full TRAMO/SEATS UserDefined calendar example](examples/full_tramoseats_user_calendar_example.py)
 combines a separate calendar pool, explicit seasonal ARIMA model, all supported
 TRAMO estimation controls, outlier detection, forecasts, and SEATS options.
+The [quarterly example](examples/quarterly_example.py) demonstrates frequency
+inference and compares X13 with TRAMO/SEATS using a seasonal period of four.
 
 ```python
 detailed = adjust(

@@ -1,5 +1,9 @@
 # Usage Guide
 
+For a consolidated description of processing stages, compatible configuration
+groups, defaults, and every supported ARIMA/X11/SEATS option, see the
+[configuration reference](CONFIGURATION.md).
+
 ## Installation
 
 `seasonal-pri` requires Python 3.9+ and Java 8+.
