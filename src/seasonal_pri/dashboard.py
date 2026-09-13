@@ -162,6 +162,53 @@ def main() -> None:
         specification = st.selectbox(
             "Preset", presets, index=presets.index(default_spec)
         )
+        configured_arima = (config.preprocessing or {}).get("arima", {})
+        arima_mode = st.radio(
+            "ARIMA model",
+            ("Automatic", "Explicit"),
+            index=1 if configured_arima else 0,
+            horizontal=True,
+        )
+        explicit_arima = {}
+        if arima_mode == "Explicit":
+            st.caption("Regular orders")
+            regular_orders = st.columns(3)
+            explicit_arima.update(
+                {
+                    name: int(
+                        column.number_input(
+                            name,
+                            min_value=0,
+                            max_value=5,
+                            value=int(configured_arima.get(name, default)),
+                        )
+                    )
+                    for name, default, column in zip(
+                        ("p", "d", "q"), (0, 1, 1), regular_orders
+                    )
+                }
+            )
+            st.caption("Seasonal orders")
+            seasonal_orders = st.columns(3)
+            explicit_arima.update(
+                {
+                    name: int(
+                        column.number_input(
+                            name.upper(),
+                            min_value=0,
+                            max_value=2,
+                            value=int(configured_arima.get(name, default)),
+                        )
+                    )
+                    for name, default, column in zip(
+                        ("bp", "bd", "bq"), (0, 1, 1), seasonal_orders
+                    )
+                }
+            )
+            explicit_arima["mean"] = st.checkbox(
+                "Include mean",
+                value=bool(configured_arima.get("mean", False)),
+            )
 
     calendar_raw = None
     calendar_date_column = None
@@ -217,6 +264,11 @@ def main() -> None:
                 options = config.engine_options(ordinary_values)
                 for key in ("frequency", "method", "spec"):
                     options.pop(key, None)
+                options["preprocessing"] = _model_preprocessing(
+                    options.get("preprocessing"),
+                    arima_mode,
+                    explicit_arima,
+                )
                 result = adjust_dataframe(
                     frame,
                     calendar_pool=calendar_pool,
@@ -237,10 +289,17 @@ def main() -> None:
         return
 
     selected_target = st.selectbox("Displayed series", result_targets)
-    metric_columns = st.columns(3)
+    model = result.arima_models.get(selected_target)
+    metric_columns = st.columns(4)
     metric_columns[0].metric("Time-series outputs", len(result.series[selected_target].columns))
     metric_columns[1].metric("Diagnostics", len(result.diagnostics[selected_target]))
     metric_columns[2].metric("Messages", len(result.messages[selected_target]))
+    metric_columns[3].metric("ARIMA model", model.notation if model else "Unavailable")
+    if model is not None:
+        st.caption(
+            "ARIMA source: "
+            + ("automatic model selection" if model.automatic else "explicit configuration")
+        )
 
     overview_tab, data_tab, diagnostics_tab, messages_tab = st.tabs(
         ("Overview", "Series", "Diagnostics", "Messages")
@@ -323,6 +382,22 @@ def _diagnostics_frame(diagnostics: Any, pd: Any) -> Any:
         ((name, str(value)) for name, value in diagnostics.items()),
         columns=("Diagnostic", "Value"),
     )
+
+
+def _model_preprocessing(
+    preprocessing: Any,
+    mode: str,
+    explicit_arima: dict[str, Any],
+) -> dict[str, Any]:
+    settings = dict(preprocessing or {})
+    if mode == "Explicit":
+        settings["arima"] = dict(explicit_arima)
+        return settings
+    settings.pop("arima", None)
+    automodel = dict(settings.get("automodel") or {})
+    automodel["enabled"] = True
+    settings["automodel"] = automodel
+    return settings
 
 
 def launch() -> None:

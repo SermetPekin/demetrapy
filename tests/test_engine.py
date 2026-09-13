@@ -99,6 +99,75 @@ class ProcessingTest(unittest.TestCase):
                 self.assertEqual((forecast.start_year, forecast.start_period), (2025, 1))
                 self.assertEqual(len(forecast.values), 12)
 
+    def test_detailed_results_report_automatically_selected_arima_model(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(144)]
+
+        for method in ("x13", "tramoseats"):
+            with self.subTest(method=method):
+                result = adjust(
+                    values,
+                    start_year=2014,
+                    method=method,
+                    spec="RSA4",
+                    detailed=True,
+                )
+
+                self.assertIsNotNone(result.arima_model)
+                model = result.arima_model
+                assert model is not None
+                self.assertTrue(model.automatic)
+                self.assertEqual(model.period, 12)
+                self.assertRegex(
+                    model.notation,
+                    r"^ARIMA\(\d+,\d+,\d+\)\(\d+,\d+,\d+\)\[12\]$",
+                )
+
+    def test_detailed_results_report_explicit_arima_model(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(144)]
+        orders = {
+            "p": 0,
+            "d": 1,
+            "q": 1,
+            "bp": 0,
+            "bd": 1,
+            "bq": 1,
+            "mean": False,
+        }
+
+        for method in ("x13", "tramoseats"):
+            with self.subTest(method=method):
+                result = adjust(
+                    values,
+                    start_year=2014,
+                    method=method,
+                    spec="RSA4",
+                    preprocessing={
+                        "arima": orders,
+                        "automodel": {"enabled": True},
+                    },
+                    detailed=True,
+                )
+
+                self.assertIsNotNone(result.arima_model)
+                model = result.arima_model
+                assert model is not None
+                self.assertFalse(model.automatic)
+                self.assertEqual(model.notation, "ARIMA(0,1,1)(0,1,1)[12]")
+                self.assertFalse(model.mean)
+
+    def test_accepts_none_transform_enum(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(144)]
+
+        result = adjust(
+            values,
+            start_year=2014,
+            method="tramoseats",
+            spec="RSA4",
+            preprocessing={"transform": {"function": "None"}},
+        )
+
+        self.assertEqual(tuple(result), COMPACT_COMPONENTS)
+
 
 if __name__ == "__main__":
     unittest.main()

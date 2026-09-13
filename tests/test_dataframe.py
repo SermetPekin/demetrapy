@@ -147,6 +147,9 @@ class DataFrameAdjustmentTest(unittest.TestCase):
         self.assertEqual(result.series[("sales", "final.sa")].count(), 120)
         self.assertEqual(result.series[("sales", "final.sa_f")].count(), 12)
         self.assertGreater(len(result.diagnostics["sales"]), 50)
+        self.assertIsNotNone(result.arima_models["sales"])
+        self.assertEqual(result.arima_models["sales"].period, 12)
+        self.assertTrue(result.arima_models["sales"].automatic)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import keyword
 import os
 import urllib.request
 from pathlib import Path
@@ -35,12 +36,33 @@ class ProcessingMessage:
 
 
 @dataclass(frozen=True)
+class ArimaModel:
+    p: int
+    d: int
+    q: int
+    bp: int
+    bd: int
+    bq: int
+    period: int
+    mean: bool
+    automatic: bool
+
+    @property
+    def notation(self) -> str:
+        return (
+            f"ARIMA({self.p},{self.d},{self.q})"
+            f"({self.bp},{self.bd},{self.bq})[{self.period}]"
+        )
+
+
+@dataclass(frozen=True)
 class AdjustmentResult:
     series: Mapping[str, OutputSeries]
     diagnostics: Mapping[str, bool | float | int | str]
     messages: tuple[ProcessingMessage, ...]
     method: str
     specification: str
+    arima_model: ArimaModel | None = None
 
 
 def _jar_path() -> Path:
@@ -157,7 +179,13 @@ def adjust(
     results = factory.process(data, java_spec, context)
 
     if detailed:
-        return _detailed_result(results, method, spec, TsData)
+        return _detailed_result(
+            results,
+            method,
+            spec,
+            TsData,
+            _uses_auto_model(java_spec, method),
+        )
 
     output: dict[str, list[float]] = {}
     for name in COMPACT_COMPONENTS:
@@ -175,6 +203,7 @@ def _detailed_result(
     method: str,
     specification: str,
     TsData: Any,
+    automatic: bool,
 ) -> AdjustmentResult:
     series: dict[str, OutputSeries] = {}
     diagnostics: dict[str, bool | float | int | str] = {}
@@ -224,7 +253,41 @@ def _detailed_result(
         messages=messages,
         method=method,
         specification=specification,
+        arima_model=_arima_model(results, diagnostics, automatic),
     )
+
+
+def _arima_model(
+    results: Any,
+    diagnostics: Mapping[str, bool | float | int | str],
+    automatic: bool,
+) -> ArimaModel | None:
+    SarimaModel = jpype.JClass("ec.tstoolkit.sarima.SarimaModel")
+    fitted = results.getData("preprocessing.arima", SarimaModel.class_)
+    if fitted is None:
+        return None
+    model = fitted.getSpecification()
+    return ArimaModel(
+        p=int(model.getP()),
+        d=int(model.getD()),
+        q=int(model.getQ()),
+        bp=int(model.getBP()),
+        bd=int(model.getBD()),
+        bq=int(model.getBQ()),
+        period=int(fitted.getFrequency()),
+        mean=bool(diagnostics.get("preprocessing.arima.mean", False)),
+        automatic=automatic,
+    )
+
+
+def _uses_auto_model(java_spec: Any, method: str) -> bool:
+    normalized = method.lower().replace("-", "").replace("/", "")
+    preprocessing = (
+        java_spec.getRegArimaSpecification()
+        if normalized == "x13"
+        else java_spec.getTramoSpecification()
+    )
+    return bool(preprocessing.isUsingAutoModel())
 
 
 def _processing_context(
@@ -406,8 +469,9 @@ def _specification(
 
 def _enum(class_name: str, value: str) -> Any:
     enum_class = jpype.JClass(class_name)
+    attribute = f"{value}_" if keyword.iskeyword(value) else value
     try:
-        return getattr(enum_class, value)
+        return getattr(enum_class, attribute)
     except AttributeError as error:
         raise ValueError(f"unsupported {class_name.rsplit('.', 1)[-1]}: {value}") from error
 
@@ -665,8 +729,6 @@ def _apply_model_options(java_spec: Any, method: str, options: Mapping[str, Any]
             "mean": "setMean",
         },
     )
-    if arima_options:
-        preprocessing.setUsingAutoModel(False)
 
     automodel_options = model_options.get("automodel", {})
     automodel = preprocessing.getAutoModel()
@@ -701,7 +763,9 @@ def _apply_model_options(java_spec: Any, method: str, options: Mapping[str, Any]
         }
     )
     _set_options(automodel, automodel_options, {**common_automodel, **method_automodel})
-    if "enabled" in automodel_options:
+    if arima_options:
+        preprocessing.setUsingAutoModel(False)
+    elif "enabled" in automodel_options:
         preprocessing.setUsingAutoModel(bool(automodel_options["enabled"]))
 
     estimate_setters = {"tolerance": "setTol"}

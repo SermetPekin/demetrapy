@@ -1,0 +1,16 @@
+{
+  "frequency": "Monthly",
+  "method": "x13",
+  "spec": "RSA4",
+  "date_column": "date",
+  "value_column": "value",
+  "preprocessing": {
+    "transform": {
+      "function": "Auto"
+    },
+    "automodel": {
+      "enabled": true,
+      "accept_default": false
+    }
+  }
+}

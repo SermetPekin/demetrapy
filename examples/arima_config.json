@@ -1,0 +1,24 @@
+{
+  "frequency": "Monthly",
+  "method": "x13",
+  "spec": "RSA4",
+  "date_column": "date",
+  "value_column": "value",
+  "preprocessing": {
+    "transform": {
+      "function": "Auto"
+    },
+    "arima": {
+      "p": 0,
+      "d": 1,
+      "q": 1,
+      "bp": 0,
+      "bd": 1,
+      "bq": 1,
+      "mean": false
+    },
+    "estimate": {
+      "tolerance": 1e-7
+    }
+  }
+}

@@ -4,7 +4,12 @@ import unittest
 
 import pandas as pd
 
-from seasonal_pri.dashboard import _diagnostics_frame, _indexed_frame, _uploaded_config
+from seasonal_pri.dashboard import (
+    _diagnostics_frame,
+    _indexed_frame,
+    _model_preprocessing,
+    _uploaded_config,
+)
 
 
 class Upload:
@@ -50,6 +55,19 @@ class DashboardHelperTest(unittest.TestCase):
         self.assertEqual(
             diagnostics["Value"].tolist(), ["12.5", "tramoseats", "True"]
         )
+
+    def test_model_preprocessing_switches_between_explicit_and_auto(self) -> None:
+        explicit = _model_preprocessing(
+            {"transform": {"function": "Log"}, "automodel": {"pcr": 0.95}},
+            "Explicit",
+            {"p": 1, "d": 1, "q": 0, "bp": 0, "bd": 1, "bq": 1},
+        )
+        automatic = _model_preprocessing(explicit, "Automatic", {})
+
+        self.assertEqual(explicit["arima"]["p"], 1)
+        self.assertEqual(explicit["transform"], {"function": "Log"})
+        self.assertNotIn("arima", automatic)
+        self.assertEqual(automatic["automodel"], {"pcr": 0.95, "enabled": True})
 
 
 if __name__ == "__main__":

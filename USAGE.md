@@ -260,6 +260,77 @@ The shared `preprocessing` object accepts `transform`, `automodel`, `arima`, and
 and `mean`; supplying them disables automodel. Transform functions are `None`,
 `Auto`, or `Log`. Unknown keys are rejected rather than ignored.
 
+Use automatic model selection and optionally tune its method-specific settings:
+
+```json
+{
+  "preprocessing": {
+    "automodel": {"enabled": true}
+  }
+}
+```
+
+Or specify a complete seasonal ARIMA model. Explicit orders always take
+precedence if an uploaded configuration also contains automodel settings:
+
+```json
+{
+  "preprocessing": {
+    "arima": {
+      "p": 0, "d": 1, "q": 1,
+      "bp": 0, "bd": 1, "bq": 1,
+      "mean": false
+    }
+  }
+}
+```
+
+The same object can be passed as `preprocessing=` to `adjust()` or
+`adjust_dataframe()`. See
+[`examples/arima_config.json`](examples/arima_config.json) for a runnable CLI
+configuration. The dashboard exposes the same choice under **ARIMA model**.
+
+Runnable Python examples are available for both modes:
+
+```bash
+python examples/automatic_arima_example.py
+python examples/explicit_arima_example.py
+```
+
+For CLI configuration, use
+[`examples/automatic_arima_config.json`](examples/automatic_arima_config.json)
+or [`examples/arima_config.json`](examples/arima_config.json).
+
+Detailed results report the fitted model, including the orders selected by
+automodel:
+
+```python
+result = adjust(
+    values,
+    start_year=2019,
+    preprocessing={"automodel": {"enabled": True}},
+    detailed=True,
+)
+print(result.arima_model.notation)
+print(result.arima_model.automatic)
+```
+
+For a detailed DataFrame result, each target has an entry in
+`result.arima_models`.
+
+For a complete TRAMO/SEATS example with all explicit ARIMA fields, every
+supported TRAMO transform and estimation option, a separate UserDefined
+calendar pool, outlier detection, and all SEATS controls, run:
+
+```bash
+python examples/full_tramoseats_user_calendar_example.py
+python examples/full_tramoseats_user_calendar_example.py --auto-model
+```
+
+The default run includes every explicit ARIMA order field. `--auto-model`
+replaces those orders with every supported TRAMO automodel control; the two
+modes are intentionally mutually exclusive.
+
 `outlier_detection.types` accepts `AO`, `LS`, `TC`, and `SO`, with optional
 `critical_value` and `tc_rate`. For TRAMO/SEATS, `seats` accepts decomposition
 settings including `approximation_mode`, `estimation_method`, boundaries, and

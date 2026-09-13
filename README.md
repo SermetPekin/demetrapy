@@ -84,6 +84,14 @@ seasonally_adjusted = result["sa"]
 Opt into the complete JDemetra result dictionary, scalar diagnostics, and
 processing messages with `detailed=True`. Returned time series retain their
 own frequency and starting period, including forecasts and backcasts.
+Detailed results also expose the fitted ARIMA orders and whether automatic
+model selection was used through `result.arima_model`.
+See [automatic_arima_example.py](examples/automatic_arima_example.py) and
+[explicit_arima_example.py](examples/explicit_arima_example.py) for runnable
+examples with both processing engines.
+The [full TRAMO/SEATS UserDefined calendar example](examples/full_tramoseats_user_calendar_example.py)
+combines a separate calendar pool, explicit seasonal ARIMA model, all supported
+TRAMO estimation controls, outlier detection, forecasts, and SEATS options.
 
 ```python
 detailed = adjust(
@@ -103,6 +111,13 @@ domains, validates coverage, and lets each target select different calendar
 columns using the same semantics as GUI `Trading Days > UserDefined`.
 The [retail operations case study](examples/RETAIL_CASE_STUDY.md) turns that
 example into a reproducible multi-target adjustment and forecasting workflow.
+
+To run X13 and TRAMO/SEATS against the same deterministic series, compare every
+compact component, and write aligned results to `method_comparison.csv`:
+
+```bash
+python examples/compare_methods.py
+```
 
 ## Plots and Dashboard
 

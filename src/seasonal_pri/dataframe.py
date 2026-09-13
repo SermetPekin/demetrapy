@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
 from typing import Any
 
-from .engine import COMPACT_COMPONENTS, AdjustmentResult, ProcessingMessage, adjust
+from .engine import (
+    COMPACT_COMPONENTS,
+    AdjustmentResult,
+    ArimaModel,
+    ProcessingMessage,
+    adjust,
+)
 
 _FREQUENCIES = {
     1: "Monthly",
@@ -24,6 +30,7 @@ class DataFrameAdjustmentResult:
     messages: Mapping[Any, tuple[ProcessingMessage, ...]]
     methods: Mapping[Any, str]
     specifications: Mapping[Any, str]
+    arima_models: Mapping[Any, ArimaModel | None] = field(default_factory=dict)
 
 
 def adjust_dataframe(
@@ -77,6 +84,7 @@ def adjust_dataframe(
     messages = {}
     methods = {}
     specifications = {}
+    arima_models = {}
     for target in frame.columns:
         selected_columns = list(mapping.get(target, ()))
         if isinstance(mapping.get(target), (str, bytes)):
@@ -124,6 +132,7 @@ def adjust_dataframe(
             messages[target] = result.messages
             methods[target] = result.method
             specifications[target] = result.specification
+            arima_models[target] = result.arima_model
             continue
         adjusted = pd.DataFrame(result, index=frame.index)[list(COMPACT_COMPONENTS)]
         adjusted.columns = pd.MultiIndex.from_product(
@@ -138,6 +147,7 @@ def adjust_dataframe(
             messages=messages,
             methods=methods,
             specifications=specifications,
+            arima_models=arima_models,
         )
     return pd.concat(adjusted_frames, axis=1).rename_axis(frame.index.name)
 

@@ -35,7 +35,9 @@ renaming, reordering, or changing the meaning of these fields requires a schema
 version increase and a major package release.
 
 With `detailed=True`, the `AdjustmentResult` fields and `OutputSeries` domain
-metadata are public API. Keys inside `AdjustmentResult.series` and
+metadata are public API. `AdjustmentResult.arima_model` reports the fitted
+orders, seasonal period, mean setting, and automatic-selection state. Keys
+inside `AdjustmentResult.series` and
 `AdjustmentResult.diagnostics` mirror the pinned JDemetra+ result dictionary.
 They vary by method and specification and are not individually guaranteed by
 the Python package.
@@ -49,6 +51,10 @@ point comparisons should use a numeric tolerance rather than formatted text.
 The automated tests verify both processing engines, calendar and ordinary
 regressors, output domains, forecasts, diagnostics, and the compact schema.
 They establish Python-wrapper reproducibility against JDemetra+ core 2.2.6.
+They also require both engines to recover a known additive monthly pattern from
+a deterministic, seeded synthetic series within documented numeric tolerances.
+A separate synthetic test verifies that selecting a user-defined calendar
+removes its known effect while an unselected variable remains only in the pool.
 
 A claim of desktop GUI parity additionally requires reference exports produced
 by JDemetra+ 2.2.6 from the same input and complete specification. Such exports
