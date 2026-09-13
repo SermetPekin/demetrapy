@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import math
 from typing import Any
 
-from .engine import AdjustmentResult, ProcessingMessage, adjust
+from .engine import COMPACT_COMPONENTS, AdjustmentResult, ProcessingMessage, adjust
 
 _FREQUENCIES = {
     1: "Monthly",
@@ -15,7 +15,6 @@ _FREQUENCIES = {
     6: "HalfYearly",
     12: "Yearly",
 }
-_COMPONENTS = ("y", "sa", "t", "s", "i")
 
 
 @dataclass(frozen=True)
@@ -126,7 +125,7 @@ def adjust_dataframe(
             methods[target] = result.method
             specifications[target] = result.specification
             continue
-        adjusted = pd.DataFrame(result, index=frame.index)[list(_COMPONENTS)]
+        adjusted = pd.DataFrame(result, index=frame.index)[list(COMPACT_COMPONENTS)]
         adjusted.columns = pd.MultiIndex.from_product(
             [[target], adjusted.columns], names=["series", "component"]
         )

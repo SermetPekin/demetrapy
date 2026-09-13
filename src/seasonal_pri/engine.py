@@ -14,6 +14,8 @@ JAR_URL = (
     "https://repo1.maven.org/maven2/eu/europa/ec/joinup/sat/"
     f"demetra-tstoolkit/{JDEMETRA_VERSION}/demetra-tstoolkit-{JDEMETRA_VERSION}.jar"
 )
+RESULT_SCHEMA_VERSION = 1
+COMPACT_COMPONENTS = ("y", "sa", "t", "s", "i")
 
 
 @dataclass(frozen=True)
@@ -158,7 +160,7 @@ def adjust(
         return _detailed_result(results, method, spec, TsData)
 
     output: dict[str, list[float]] = {}
-    for name in ("y", "sa", "t", "s", "i"):
+    for name in COMPACT_COMPONENTS:
         series = results.getData(name, TsData.class_)
         if series is None:
             information = "; ".join(str(item) for item in results.getProcessingInformation())

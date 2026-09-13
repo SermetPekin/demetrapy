@@ -4,7 +4,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from seasonal_pri import COMPACT_COMPONENTS, RESULT_SCHEMA_VERSION
 from seasonal_pri.engine import AdjustmentResult, _jar_path, adjust
+
+
+class PublicContractTest(unittest.TestCase):
+    def test_compact_result_schema_is_versioned(self) -> None:
+        self.assertEqual(RESULT_SCHEMA_VERSION, 1)
+        self.assertEqual(COMPACT_COMPONENTS, ("y", "sa", "t", "s", "i"))
 
 
 class JarPathTest(unittest.TestCase):
@@ -41,7 +48,7 @@ class ProcessingTest(unittest.TestCase):
                         }
                     ],
                 )
-                self.assertEqual(set(result), {"y", "sa", "t", "s", "i"})
+                self.assertEqual(tuple(result), COMPACT_COMPONENTS)
                 self.assertTrue(all(len(series) == 120 for series in result.values()))
 
     def test_x13_and_tramoseats_accept_full_domain_calendar_variables(self) -> None:
@@ -64,7 +71,7 @@ class ProcessingTest(unittest.TestCase):
                         }
                     ],
                 )
-                self.assertEqual(set(result), {"y", "sa", "t", "s", "i"})
+                self.assertEqual(tuple(result), COMPACT_COMPONENTS)
                 self.assertTrue(all(len(series) == 120 for series in result.values()))
 
     def test_detailed_results_include_domain_aware_forecasts(self) -> None:

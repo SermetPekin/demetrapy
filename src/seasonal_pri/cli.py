@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Sequence, TextIO
 
 from .config import AdjustmentConfig
-from .engine import AdjustmentResult, adjust
+from .engine import COMPACT_COMPONENTS, AdjustmentResult, adjust
 from .plotting import plot_adjustment
 
 PERIODS_PER_YEAR = {"Monthly": 12, "Quarterly": 4, "HalfYearly": 2, "Yearly": 1}
@@ -121,7 +121,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         if isinstance(engine_result, AdjustmentResult):
             result = {
                 name: list(engine_result.series[f"final.{name}"].values)
-                for name in ("y", "sa", "t", "s", "i")
+                for name in COMPACT_COMPONENTS
             }
         else:
             result = engine_result

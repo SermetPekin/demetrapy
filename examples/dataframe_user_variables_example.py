@@ -41,14 +41,25 @@ if __name__ == "__main__":
         "sales": ["retail_td"],
         "orders": ["retail_td", "delivery_td"],
     }
-    adjusted = adjust_dataframe(
+    result = adjust_dataframe(
         observations,
         calendar_pool=calendars,
         user_defined_calendars=selected_calendars,
         method="tramoseats",
         spec="RSA4",
+        seats={"prediction_length": 12},
+        detailed=True,
     )
 
     print("Available calendar columns:", list(calendars.columns))
     print("Calendars selected by target:", selected_calendars)
-    print(adjusted.head(12).round(3))
+    print("Output frame shape:", result.series.shape)
+    print("Diagnostics by target:", {
+        target: len(values) for target, values in result.diagnostics.items()
+    })
+    sales_history = result.series.loc[
+        :, [("sales", "final.y"), ("sales", "final.sa")]
+    ].dropna()
+    print(sales_history.head(12).round(3))
+    print("Sales forecast:")
+    print(result.series.loc[:, ("sales", "final.sa_f")].dropna().round(3))

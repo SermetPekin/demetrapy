@@ -1,5 +1,7 @@
 # seasonal-pri
 
+[![CI](https://github.com/SermetPekin/seasonal-pri/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/seasonal-pri/actions/workflows/ci.yml)
+
 A Python command-line interface for seasonal adjustment with
 [JDemetra+ core](https://github.com/jdemetra/jdemetra-core). It calls the real
 X13 and TRAMO/SEATS implementations through JPype and does not require Maven or
@@ -59,6 +61,9 @@ See the [usage guide](USAGE.md) for the complete input, configuration, output,
 and Python API reference, or the [Windows usage guide](WINDOWS_USAGE.md) for
 Command Prompt instructions.
 
+The supported runtime matrix and result stability policy are documented in
+[COMPATIBILITY.md](COMPATIBILITY.md).
+
 The result contains the original (`y`), seasonally adjusted (`sa`), trend
 (`t`), seasonal (`s`), and irregular (`i`) series.
 
@@ -96,6 +101,8 @@ for a pandas example that keeps observations and a broad user-defined calendar
 pool in separate DataFrames. `adjust_dataframe()` infers their frequency and
 domains, validates coverage, and lets each target select different calendar
 columns using the same semantics as GUI `Trading Days > UserDefined`.
+The [retail operations case study](examples/RETAIL_CASE_STUDY.md) turns that
+example into a reproducible multi-target adjustment and forecasting workflow.
 
 ## Plots and Dashboard
 
@@ -119,3 +126,6 @@ seasonal-pri-dashboard
 ```bash
 python -m unittest discover -s tests
 ```
+
+CI runs the complete suite on Linux, Windows, and macOS with representative
+Python 3.9-3.13 and Java 11/17 combinations.

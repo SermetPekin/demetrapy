@@ -9,6 +9,21 @@ description = "A Python CLI for seasonal adjustment with JDemetra+ core"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = ["JPype1>=1.5,<2"]
+keywords = ["seasonal-adjustment", "jdemetra", "x13", "tramo-seats", "time-series"]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+	"Environment :: Console",
+	"Intended Audience :: Financial and Insurance Industry",
+	"Intended Audience :: Science/Research",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3 :: Only",
+	"Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+[project.urls]
+Documentation = "https://github.com/SermetPekin/seasonal-pri/blob/main/USAGE.md"
+Issues = "https://github.com/SermetPekin/seasonal-pri/issues"
+Repository = "https://github.com/SermetPekin/seasonal-pri"
 
 [project.optional-dependencies]
 examples = ["pandas>=2,<4"]
