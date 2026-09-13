@@ -1,6 +1,6 @@
 # demetrapy
 
-[![CI](https://github.com/SermetPekin/seasonal-pri/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/seasonal-pri/actions/workflows/ci.yml)
+[![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
 
 `demetrapy` provides Python and command-line access to the seasonal-adjustment
 procedures in [JDemetra+](https://github.com/jdemetra/jdemetra-core). It runs
@@ -40,7 +40,8 @@ python -m pip install -e .
 The first calculation downloads the pinned `demetra-tstoolkit` 2.2.6 JAR from
 Maven Central and stores it in `~/.cache/demetrapy`. Set `DEMETRAPY_JAR` to the
 path of a local copy when automatic download is not suitable. The
-[Windows guide](WINDOWS_USAGE.md) covers Command Prompt, proxy-restricted, and
+[Windows guide](https://github.com/SermetPekin/demetrapy/blob/main/WINDOWS_USAGE.md)
+covers Command Prompt, proxy-restricted, and
 offline installations.
 
 ## Python interface
@@ -134,7 +135,8 @@ demetrapy \
 ```
 
 The output contains `y`, `sa`, `t`, `s`, and `i`, aligned with the input dates.
-See the [usage guide](USAGE.md) for the complete command-line and Python API.
+See the [usage guide](https://github.com/SermetPekin/demetrapy/blob/main/USAGE.md)
+for the complete command-line and Python API.
 
 ## Specifications and regressors
 
@@ -159,8 +161,9 @@ equation. The target observations and calendar pool may be supplied as
 separate DataFrames, provided their frequencies agree and the calendar domain
 covers the estimation sample.
 
-The [configuration reference](CONFIGURATION.md) documents processing order,
-valid option groups, preset behavior, and result semantics.
+The [configuration reference](https://github.com/SermetPekin/demetrapy/blob/main/CONFIGURATION.md)
+documents processing order, valid option groups, preset behavior, and result
+semantics.
 
 ## Inspection
 
@@ -186,19 +189,20 @@ interfaces.
 
 | Example | Subject |
 | --- | --- |
-| [automatic_arima_example.py](examples/automatic_arima_example.py) | automatic model selection with both methods |
-| [explicit_arima_example.py](examples/explicit_arima_example.py) | prespecified seasonal ARIMA models |
-| [quarterly_example.py](examples/quarterly_example.py) | quarterly frequency inference and period-four seasonality |
-| [compare_methods.py](examples/compare_methods.py) | component-wise X13 and TRAMO/SEATS comparison |
-| [dataframe_user_variables_example.py](examples/dataframe_user_variables_example.py) | multiple targets and a separate calendar pool |
-| [full_tramoseats_user_calendar_example.py](examples/full_tramoseats_user_calendar_example.py) | detailed TRAMO/SEATS specification with UserDefined trading days |
-| [RETAIL_CASE_STUDY.md](examples/RETAIL_CASE_STUDY.md) | reproducible multi-series case study |
-| [dashboard files](examples/dashboard/README.md) | ready-to-upload dashboard inputs |
+| [automatic_arima_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/automatic_arima_example.py) | automatic model selection with both methods |
+| [explicit_arima_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/explicit_arima_example.py) | prespecified seasonal ARIMA models |
+| [quarterly_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/quarterly_example.py) | quarterly frequency inference and period-four seasonality |
+| [compare_methods.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/compare_methods.py) | component-wise X13 and TRAMO/SEATS comparison |
+| [dataframe_user_variables_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/dataframe_user_variables_example.py) | multiple targets and a separate calendar pool |
+| [full_tramoseats_user_calendar_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/full_tramoseats_user_calendar_example.py) | detailed TRAMO/SEATS specification with UserDefined trading days |
+| [RETAIL_CASE_STUDY.md](https://github.com/SermetPekin/demetrapy/blob/main/examples/RETAIL_CASE_STUDY.md) | reproducible multi-series case study |
+| [dashboard files](https://github.com/SermetPekin/demetrapy/blob/main/examples/dashboard/README.md) | ready-to-upload dashboard inputs |
 
 ## Reproducibility and compatibility
 
 The compact result schema is versioned, and the supported Python, Java, and
-JDemetra+ combinations are stated in [COMPATIBILITY.md](COMPATIBILITY.md).
+JDemetra+ combinations are stated in the
+[compatibility policy](https://github.com/SermetPekin/demetrapy/blob/main/COMPATIBILITY.md).
 Tests use both processing engines and include synthetic seasonal and calendar
 effects with known structure. CI runs on Linux, Windows, and macOS.
 
