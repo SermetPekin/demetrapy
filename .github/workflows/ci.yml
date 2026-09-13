@@ -29,20 +29,20 @@ jobs:
             java: "11"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           cache: pip
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
 
       - name: Cache JDemetra+ core
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/seasonal-pri
           key: jdemetra-${{ runner.os }}-2.2.6
