@@ -2,20 +2,34 @@
 
 [![CI](https://github.com/SermetPekin/seasonal-pri/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/seasonal-pri/actions/workflows/ci.yml)
 
-A Python command-line interface for seasonal adjustment with
-[JDemetra+ core](https://github.com/jdemetra/jdemetra-core). It calls the real
-X13 and TRAMO/SEATS implementations through JPype and does not require Maven or
-a Demetra+ desktop installation.
+`demetrapy` provides Python and command-line access to the seasonal-adjustment
+procedures in [JDemetra+](https://github.com/jdemetra/jdemetra-core). It runs
+the JDemetra+ X13 and TRAMO/SEATS implementations through JPype; it does not
+reimplement either procedure in Python.
 
-## Requirements
+The package is intended for empirical work in which adjustment specifications
+must be recorded, repeated, and applied to several series. It accepts regular
+monthly, quarterly, half-yearly, and yearly observations. Calendar effects,
+intervention variables, outliers, ARIMA specifications, forecasts, and the
+principal decomposition options can be set in code or in a JSON file.
 
-- Python 3.9 or newer
-- Java 8 or newer
+Seasonal adjustment is an inferential procedure, not merely a filter applied
+to a column of numbers. Results depend on the transformation, regression
+effects, ARIMA model, decomposition method, and span of the sample. Published
+series should therefore be accompanied by their specification and revision
+policy. `demetrapy` exposes JDemetra+ diagnostics and processing messages for
+this purpose, but it does not decide whether a specification is economically
+appropriate.
 
-## Install
+## Installation
 
-Windows users should follow the [Windows usage guide](WINDOWS_USAGE.md), which
-also covers proxy-restricted and fully offline JAR installation.
+`demetrapy` requires Python 3.9 or later and Java 8 or later.
+
+```bash
+python -m pip install demetrapy
+```
+
+For development from a clone:
 
 ```bash
 python -m venv .venv
@@ -23,13 +37,80 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-The pinned `demetra-tstoolkit` 2.2.6 JAR is downloaded from Maven Central on
-the first run and cached in `~/.cache/demetrapy`. Set `DEMETRAPY_JAR` to
-use a local JAR instead.
+The first calculation downloads the pinned `demetra-tstoolkit` 2.2.6 JAR from
+Maven Central and stores it in `~/.cache/demetrapy`. Set `DEMETRAPY_JAR` to the
+path of a local copy when automatic download is not suitable. The
+[Windows guide](WINDOWS_USAGE.md) covers Command Prompt, proxy-restricted, and
+offline installations.
 
-## Use
+## Python interface
 
-Input is a regular monthly, quarterly, half-yearly, or yearly CSV series:
+For a pandas object with a regular `DatetimeIndex`, `adjust_dataframe()`
+infers the observation frequency and adjusts each column separately:
+
+```python
+import pandas as pd
+
+from demetrapy import adjust_dataframe
+
+data = pd.DataFrame(
+	{"production": observations},
+	index=pd.date_range("2015-01-01", periods=len(observations), freq="MS"),
+)
+
+result = adjust_dataframe(data, method="x13", spec="RSA4")
+adjusted = result[("production", "sa")]
+```
+
+The lower-level `adjust()` function accepts one regular sequence and an
+explicit starting period:
+
+```python
+from demetrapy import adjust
+
+result = adjust(
+	values,
+	frequency="Quarterly",
+	start_year=2005,
+	start_period=1,
+	method="tramoseats",
+	spec="RSA4",
+)
+adjusted = result["sa"]
+```
+
+By default, both functions return the five compact components used in routine
+work:
+
+| Name | Series |
+| --- | --- |
+| `y` | observed series |
+| `sa` | seasonally adjusted series |
+| `t` | trend-cycle |
+| `s` | seasonal component |
+| `i` | irregular component |
+
+Set `detailed=True` when the calculation must retain the full JDemetra+ result
+dictionary, diagnostics, processing messages, forecasts, backcasts, and fitted
+ARIMA model:
+
+```python
+detailed = adjust(
+	values,
+	frequency="Monthly",
+	start_year=2015,
+	forecast_horizon=12,
+	detailed=True,
+)
+
+print(detailed.arima_model.notation)
+forecast = detailed.series["final.sa_f"]
+```
+
+## Command line
+
+The command-line interface reads a regular CSV file with date and value
+columns:
 
 ```csv
 date,value
@@ -37,113 +118,93 @@ date,value
 2019-02-01,103.8
 ```
 
-Run with defaults (`Monthly`, `RSA4`):
+The default calculation is monthly X13 with the `RSA4` preset:
 
 ```bash
 demetrapy input.csv --output adjusted.csv
 ```
 
-The equivalent fully named form is:
+A JSON file records a fuller specification:
 
 ```bash
-demetrapy --data input.csv --config examples/config.json --output adjusted.csv
+demetrapy \
+  --data input.csv \
+  --config examples/full_config.json \
+  --output adjusted.csv
 ```
 
-Or provide a JSON configuration. The full example includes TRAMO/SEATS,
-calendar effects, user regressors, outliers, interventions, and ramps:
+The output contains `y`, `sa`, `t`, `s`, and `i`, aligned with the input dates.
+See the [usage guide](USAGE.md) for the complete command-line and Python API.
 
-```bash
-demetrapy input.csv --config examples/config.json --output adjusted.csv
-demetrapy input.csv --config examples/full_config.json --output adjusted.csv
-```
+## Specifications and regressors
 
-See the [usage guide](USAGE.md) for the complete input, configuration, output,
-and Python API reference, or the [Windows usage guide](WINDOWS_USAGE.md) for
-Command Prompt instructions.
+The package constructs an isolated JDemetra+ processing context for each
+calculation. Preset defaults remain those of JDemetra+ unless an option is
+overridden explicitly.
 
-The supported runtime matrix and result stability policy are documented in
-[COMPATIBILITY.md](COMPATIBILITY.md).
-See [CONFIGURATION.md](CONFIGURATION.md) for processing order, compatible
-option groups, defaults, ARIMA controls, calendars, X11, SEATS, and detailed
-result semantics.
+| Area | Available controls |
+| --- | --- |
+| Methods | X13 and TRAMO/SEATS presets |
+| RegARIMA | transformation, explicit ARIMA, automatic model selection, estimation controls |
+| Calendar | built-in trading days, working days, leap year, Easter, and UserDefined variables |
+| Regression | user variables, fixed coefficients, interventions, and ramps |
+| Outliers | prespecified and automatic detection |
+| Decomposition | X11 filters and limits; SEATS approximation and boundary controls |
+| Output | forecasts, backcasts, benchmarking, diagnostics, and processing messages |
 
-The result contains the original (`y`), seasonally adjusted (`sa`), trend
-(`t`), seasonal (`s`), and irregular (`i`) series.
+UserDefined trading-day variables follow the distinction made in the
+JDemetra+ graphical interface: a calendar pool may contain several registered
+series while each target selects only the variables relevant to its own
+equation. The target observations and calendar pool may be supplied as
+separate DataFrames, provided their frequencies agree and the calendar domain
+covers the estimation sample.
 
-Configuration supports X13 and TRAMO/SEATS presets, preprocessing and
-decomposition overrides, built-in and custom calendars, CSV-backed user
-variables, prespecified and automatically detected outliers, interventions,
-ramps, and fixed coefficients.
+The [configuration reference](CONFIGURATION.md) documents processing order,
+valid option groups, preset behavior, and result semantics.
 
-The same engine is available from Python:
+## Inspection
 
-```python
-from demetrapy import adjust
-
-result = adjust(values, frequency="Monthly", start_year=2019, spec="RSA4")
-seasonally_adjusted = result["sa"]
-```
-
-Opt into the complete JDemetra result dictionary, scalar diagnostics, and
-processing messages with `detailed=True`. Returned time series retain their
-own frequency and starting period, including forecasts and backcasts.
-Detailed results also expose the fitted ARIMA orders and whether automatic
-model selection was used through `result.arima_model`.
-See [automatic_arima_example.py](examples/automatic_arima_example.py) and
-[explicit_arima_example.py](examples/explicit_arima_example.py) for runnable
-examples with both processing engines.
-The [full TRAMO/SEATS UserDefined calendar example](examples/full_tramoseats_user_calendar_example.py)
-combines a separate calendar pool, explicit seasonal ARIMA model, all supported
-TRAMO estimation controls, outlier detection, forecasts, and SEATS options.
-The [quarterly example](examples/quarterly_example.py) demonstrates frequency
-inference and compares X13 with TRAMO/SEATS using a seasonal period of four.
-
-```python
-detailed = adjust(
-	values,
-	frequency="Monthly",
-	start_year=2019,
-	forecast_horizon=12,
-	detailed=True,
-)
-forecast = detailed.series["final.sa_f"]
-```
-
-See [examples/dataframe_user_variables_example.py](examples/dataframe_user_variables_example.py)
-for a pandas example that keeps observations and a broad user-defined calendar
-pool in separate DataFrames. `adjust_dataframe()` infers their frequency and
-domains, validates coverage, and lets each target select different calendar
-columns using the same semantics as GUI `Trading Days > UserDefined`.
-The [retail operations case study](examples/RETAIL_CASE_STUDY.md) turns that
-example into a reproducible multi-target adjustment and forecasting workflow.
-
-To run X13 and TRAMO/SEATS against the same deterministic series, compare every
-compact component, and write aligned results to `method_comparison.csv`:
-
-```bash
-python examples/compare_methods.py
-```
-
-## Plots and Dashboard
-
-Plotting support is included in the standard installation:
+A static summary plot can be produced from the command line:
 
 ```bash
 demetrapy --data input.csv --plot-output adjustment.png
 ```
 
-For an interactive local interface with CSV uploads, multi-series controls,
-calendar mappings, Plotly charts, diagnostics, messages, and downloads:
+The local dashboard is included in the standard installation:
 
 ```bash
 demetrapy-dashboard
 ```
 
-## Test
+It accepts observation, configuration, and calendar-pool files and reports
+the adjusted series together with diagnostics, model information, processing
+messages, and downloadable results. The dashboard is a convenient inspection
+tool; it uses the same calculation path as the Python and command-line
+interfaces.
+
+## Examples
+
+| Example | Subject |
+| --- | --- |
+| [automatic_arima_example.py](examples/automatic_arima_example.py) | automatic model selection with both methods |
+| [explicit_arima_example.py](examples/explicit_arima_example.py) | prespecified seasonal ARIMA models |
+| [quarterly_example.py](examples/quarterly_example.py) | quarterly frequency inference and period-four seasonality |
+| [compare_methods.py](examples/compare_methods.py) | component-wise X13 and TRAMO/SEATS comparison |
+| [dataframe_user_variables_example.py](examples/dataframe_user_variables_example.py) | multiple targets and a separate calendar pool |
+| [full_tramoseats_user_calendar_example.py](examples/full_tramoseats_user_calendar_example.py) | detailed TRAMO/SEATS specification with UserDefined trading days |
+| [RETAIL_CASE_STUDY.md](examples/RETAIL_CASE_STUDY.md) | reproducible multi-series case study |
+| [dashboard files](examples/dashboard/README.md) | ready-to-upload dashboard inputs |
+
+## Reproducibility and compatibility
+
+The compact result schema is versioned, and the supported Python, Java, and
+JDemetra+ combinations are stated in [COMPATIBILITY.md](COMPATIBILITY.md).
+Tests use both processing engines and include synthetic seasonal and calendar
+effects with known structure. CI runs on Linux, Windows, and macOS.
 
 ```bash
 python -m unittest discover -s tests
 ```
 
-CI runs the complete suite on Linux, Windows, and macOS with representative
-Python 3.9-3.13 and Java 11/17 combinations.
+`demetrapy` is an independent interface to JDemetra+ and is not an official
+publication of the JDemetra+ project.
