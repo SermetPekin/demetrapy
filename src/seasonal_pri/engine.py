@@ -17,6 +17,7 @@ JAR_URL = (
 )
 RESULT_SCHEMA_VERSION = 1
 COMPACT_COMPONENTS = ("y", "sa", "t", "s", "i")
+_PERIODS_PER_YEAR = {"Monthly": 12, "Quarterly": 4, "HalfYearly": 2, "Yearly": 1}
 
 
 @dataclass(frozen=True)
@@ -122,8 +123,9 @@ def adjust(
     """Seasonally adjust one regular series using X13 or TRAMO/SEATS."""
     if not values:
         raise ValueError("values must not be empty")
-    if start_period < 1:
-        raise ValueError("start_period is one-based and must be positive")
+    if frequency not in _PERIODS_PER_YEAR:
+        raise ValueError(f"unsupported frequency: {frequency}")
+    _validate_start_period(start_period, frequency, "series")
 
     _ensure_jvm()
     TsData = jpype.JClass("ec.tstoolkit.timeseries.simplets.TsData")
@@ -131,10 +133,7 @@ def adjust(
     DecompositionMode = jpype.JClass("ec.satoolkit.DecompositionMode")
     SeasonalFilterOption = jpype.JClass("ec.satoolkit.x11.SeasonalFilterOption")
 
-    try:
-        java_frequency = getattr(TsFrequency, frequency)
-    except AttributeError as error:
-        raise ValueError(f"unsupported frequency: {frequency}") from error
+    java_frequency = getattr(TsFrequency, frequency)
     data = TsData(
         java_frequency,
         start_year,
@@ -309,6 +308,7 @@ def _processing_context(
 
     context = ProcessingContext()
     groups: dict[str, Any] = {}
+    registered_names: set[tuple[str, str]] = set()
     descriptors: list[Any] = []
     for variable in variables:
         name = str(variable.get("name", "")).strip()
@@ -317,6 +317,7 @@ def _processing_context(
         group = str(variable.get("group", "user")).strip()
         if not group or "." in group:
             raise ValueError("user variable groups must be non-empty and contain no dots")
+        _reserve_variable_name(registered_names, group, name)
         variable_values = variable.get("values")
         if not isinstance(variable_values, Sequence) or isinstance(variable_values, str):
             raise ValueError(f"user variable '{name}' needs a values sequence")
@@ -349,6 +350,7 @@ def _processing_context(
         group = str(variable.get("group", "calendar")).strip()
         if not group or "." in group:
             raise ValueError("calendar variable groups must contain no dots")
+        _reserve_variable_name(registered_names, group, name)
         variable_values = variable.get("values")
         if (
             not isinstance(variable_values, Sequence)
@@ -359,17 +361,20 @@ def _processing_context(
         variable_frequency = frequency
         if "frequency" in variable:
             TsFrequency = jpype.JClass("ec.tstoolkit.timeseries.simplets.TsFrequency")
-            try:
-                variable_frequency = getattr(TsFrequency, variable["frequency"])
-            except AttributeError as error:
-                raise ValueError(
-                    f"unsupported frequency for calendar variable '{name}'"
-                ) from error
+            variable_frequency_name = str(variable["frequency"])
+            if variable_frequency_name not in _PERIODS_PER_YEAR:
+                raise ValueError(f"unsupported frequency for calendar variable '{name}'")
+            variable_frequency = getattr(TsFrequency, variable_frequency_name)
+        else:
+            variable_frequency_name = str(frequency)
         if "start_year" not in variable:
             raise ValueError(f"calendar variable '{name}' needs start_year")
         variable_start_period = int(variable.get("start_period", 1))
-        if variable_start_period < 1:
-            raise ValueError("calendar variable start_period must be positive")
+        _validate_start_period(
+            variable_start_period,
+            variable_frequency_name,
+            f"calendar variable '{name}'",
+        )
 
         manager = groups.setdefault(group, TsVariables())
         variable_data = TsData(
@@ -386,6 +391,23 @@ def _processing_context(
     for group, manager in groups.items():
         context.getTsVariableManagers().set(group, manager)
     return context, descriptors, calendar_variable_names
+
+
+def _reserve_variable_name(
+    registered_names: set[tuple[str, str]], group: str, name: str
+) -> None:
+    identifier = (group, name)
+    if identifier in registered_names:
+        raise ValueError(f"variable name is already registered: {group}.{name}")
+    registered_names.add(identifier)
+
+
+def _validate_start_period(start_period: int, frequency: str, label: str) -> None:
+    maximum = _PERIODS_PER_YEAR[frequency]
+    if not 1 <= start_period <= maximum:
+        raise ValueError(
+            f"{label} start_period must be between 1 and {maximum} for {frequency}"
+        )
 
 
 def _specification(
@@ -544,6 +566,22 @@ def _apply_calendar(
     if not calendar and not variable_names:
         return
     calendar = calendar or {}
+    common_options = {
+        "type",
+        "test",
+        "stock_day",
+        "holidays",
+        "custom_holidays",
+        "easter",
+        "mean_correction",
+        "julian_easter",
+    }
+    method_options = {"length_of_period"} if method == "x13" else {"leap_year", "automatic"}
+    unknown = set(calendar) - common_options - method_options
+    if unknown:
+        raise ValueError(
+            f"unsupported {method} calendar options: {', '.join(sorted(unknown))}"
+        )
     if method == "x13":
         trading_days = regression.getTradingDays()
         if "type" in calendar:
@@ -599,6 +637,7 @@ def _apply_x13_easter(regression: Any, settings: object) -> None:
     if not settings:
         return
     config = settings if isinstance(settings, Mapping) else {}
+    _reject_unknown_options(config, {"test", "julian", "duration"}, "X13 Easter")
     MovingHolidaySpec = jpype.JClass("ec.tstoolkit.modelling.arima.x13.MovingHolidaySpec")
     easter = MovingHolidaySpec.easterSpec(config.get("test", "Add") == "Add", bool(config.get("julian", False)))
     easter.setW(int(config.get("duration", 6)))
@@ -611,6 +650,11 @@ def _apply_tramo_easter(easter: Any, settings: object) -> None:
     if not settings:
         return
     config = settings if isinstance(settings, Mapping) else {}
+    _reject_unknown_options(
+        config,
+        {"option", "duration", "test", "julian"},
+        "TRAMO Easter",
+    )
     easter.setOption(
         _enum(
             "ec.tstoolkit.modelling.arima.tramo.EasterSpec$Type",
@@ -669,6 +713,14 @@ def _set_options(target: Any, values: Mapping[str, Any], setters: Mapping[str, s
         getattr(target, setters[key])(value)
 
 
+def _reject_unknown_options(
+    values: Mapping[str, Any], allowed: set[str], label: str
+) -> None:
+    unknown = set(values) - allowed
+    if unknown:
+        raise ValueError(f"unsupported {label} options: {', '.join(sorted(unknown))}")
+
+
 def _apply_model_options(java_spec: Any, method: str, options: Mapping[str, Any]) -> None:
     model_options = options["preprocessing"] or {}
     preprocessing = (
@@ -716,6 +768,7 @@ def _apply_model_options(java_spec: Any, method: str, options: Mapping[str, Any]
     )
 
     arima_options = model_options.get("arima", {})
+    _validate_arima_options(arima_options)
     _set_options(
         preprocessing.getArima(),
         arima_options,
@@ -804,6 +857,17 @@ def _apply_model_options(java_spec: Any, method: str, options: Mapping[str, Any]
                 "prediction_length": "setPredictionLength",
             },
         )
+
+
+def _validate_arima_options(options: Mapping[str, Any]) -> None:
+    for name in ("p", "d", "q", "bp", "bd", "bq"):
+        if name not in options:
+            continue
+        value = options[name]
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"ARIMA order '{name}' must be a non-negative integer")
+    if "mean" in options and not isinstance(options["mean"], bool):
+        raise ValueError("ARIMA option 'mean' must be a boolean")
 
 
 def _apply_outlier_detection(target: Any, method: str, settings: Mapping[str, Any] | None) -> None:

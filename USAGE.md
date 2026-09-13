@@ -285,6 +285,10 @@ precedence if an uploaded configuration also contains automodel settings:
 }
 ```
 
+ARIMA fields may be supplied partially; omitted orders retain their values from
+the selected preset before automatic model selection is disabled. Supply all
+seven fields when the model must be fully reproducible independent of preset.
+
 The same object can be passed as `preprocessing=` to `adjust()` or
 `adjust_dataframe()`. See
 [`examples/arima_config.json`](examples/arima_config.json) for a runnable CLI
