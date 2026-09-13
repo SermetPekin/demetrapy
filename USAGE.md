@@ -98,6 +98,8 @@ seasonal-pri \
 | `--frequency NAME` | | `Monthly`, `Quarterly`, `HalfYearly`, or `Yearly` |
 | `--date-column NAME` | | Input date-column name |
 | `--value-column NAME` | | Input value-column name |
+| `--plot` | | Display an interactive overview window |
+| `--plot-output FILE` | | Save the overview as a PNG file |
 
 Do not supply both positional `input` and `--data`. Command-line method,
 specification, frequency, and column options override values from the JSON
@@ -149,6 +151,63 @@ seasonal-pri --data "data/monthly sales.csv" --output "results/adjusted sales.cs
 
 The CLI processes one value column per invocation. Use `adjust_dataframe()`
 from Python to process multiple target columns in one call.
+
+## Plotting
+
+Plotting is optional and does not change seasonal-adjustment calculations:
+
+```bash
+python -m pip install -e ".[plots]"
+```
+
+Save a GUI-style overview containing original and adjusted series, trend,
+seasonal, irregular, configured forecasts, and active effects:
+
+```bash
+seasonal-pri \
+  --data input.csv \
+  --config examples/config.json \
+  --output adjusted.csv \
+  --plot-output adjustment.png
+```
+
+Display the plot instead of only saving it:
+
+```bash
+seasonal-pri --data input.csv --plot
+```
+
+Python callers receive the Matplotlib figure without displaying it:
+
+```python
+from seasonal_pri import plot_adjustment
+
+figure = plot_adjustment(detailed_result, target="sales")
+figure.savefig("sales-adjustment.png", dpi=150)
+```
+
+`target` is required when the result contains multiple target series.
+
+## Streamlit Dashboard
+
+Install and launch the optional local dashboard:
+
+```bash
+python -m pip install -e ".[dashboard]"
+seasonal-pri-dashboard
+```
+
+The dashboard accepts a series CSV, an optional JSON configuration, and an
+optional user-defined calendar-pool CSV. It supports multiple target columns,
+per-target calendar mappings, X13 and TRAMO/SEATS presets, interactive Plotly
+charts, diagnostics, processing messages, and CSV downloads. Charts support
+hover values, zooming, panning, and legend toggles. Processing still uses the
+same in-memory JDemetra+ engine and does not create workspace XML.
+
+Ready-to-upload files and the exact selections are provided in the
+[dashboard example directory](examples/dashboard/README.md). The fixture set
+includes a multi-series CSV, a wider calendar pool, and separate X13 and
+TRAMO/SEATS configurations with forecasts.
 
 ## Configuration
 

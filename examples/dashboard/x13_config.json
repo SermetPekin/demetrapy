@@ -1,0 +1,12 @@
+{
+  "frequency": "Monthly",
+  "method": "x13",
+  "spec": "RSA4",
+  "date_column": "date",
+  "value_column": "sales",
+  "forecast_horizon": 12,
+  "backcast_horizon": 12,
+  "outlier_detection": {
+    "types": ["AO", "LS", "TC"]
+  }
+}

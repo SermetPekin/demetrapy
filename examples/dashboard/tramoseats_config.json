@@ -1,0 +1,13 @@
+{
+  "frequency": "Monthly",
+  "method": "tramoseats",
+  "spec": "RSAfull",
+  "date_column": "date",
+  "value_column": "sales",
+  "outlier_detection": {
+    "types": ["AO", "LS", "TC"]
+  },
+  "seats": {
+    "prediction_length": 12
+  }
+}

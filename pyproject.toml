@@ -13,9 +13,16 @@ dependencies = ["JPype1>=1.5,<2"]
 [project.optional-dependencies]
 examples = ["pandas>=2,<4"]
 plots = ["pandas>=2,<4", "matplotlib>=3.8,<4"]
+dashboard = [
+	"pandas>=2,<4",
+	"matplotlib>=3.8,<4",
+	"plotly>=6,<7",
+	"streamlit>=1.40,<2",
+]
 
 [project.scripts]
 seasonal-pri = "seasonal_pri.cli:main"
+seasonal-pri-dashboard = "seasonal_pri.dashboard:launch"
 
 [tool.setuptools.packages.find]
 where = ["src"]

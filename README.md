@@ -97,6 +97,23 @@ pool in separate DataFrames. `adjust_dataframe()` infers their frequency and
 domains, validates coverage, and lets each target select different calendar
 columns using the same semantics as GUI `Trading Days > UserDefined`.
 
+## Plots and Dashboard
+
+Install optional visualization support:
+
+```bash
+python -m pip install -e ".[plots]"
+seasonal-pri --data input.csv --plot-output adjustment.png
+```
+
+For an interactive local interface with CSV uploads, multi-series controls,
+calendar mappings, Plotly charts, diagnostics, messages, and downloads:
+
+```bash
+python -m pip install -e ".[dashboard]"
+seasonal-pri-dashboard
+```
+
 ## Test
 
 ```bash
