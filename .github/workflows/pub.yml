@@ -1,0 +1,73 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pypi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Test, build, and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "11"
+
+      - name: Cache JDemetra+ core
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/demetrapy
+          key: jdemetra-${{ runner.os }}-2.2.6
+
+      - name: Verify tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+          expected_tag = f"v{project['version']}"
+          actual_tag = os.environ["RELEASE_TAG"]
+          if actual_tag != expected_tag:
+              raise SystemExit(
+                  f"release tag {actual_tag!r} does not match {expected_tag!r}"
+              )
+          PY
+
+      - name: Install package and build tools
+        run: python -m pip install --upgrade pip build twine .
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Check distributions
+        run: python -m twine check dist/*
+
+      - name: Publish to PyPI with repository token
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload dist/*

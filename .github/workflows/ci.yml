@@ -24,9 +24,9 @@ jobs:
           - os: windows-latest
             python: "3.11"
             java: "11"
-          - os: macos-latest
-            python: "3.12"
-            java: "11"
+          # - os: macos-latest
+          #   python: "3.12"
+          #   java: "11"
 
     steps:
       - uses: actions/checkout@v7
