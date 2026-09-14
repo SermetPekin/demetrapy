@@ -17,6 +17,7 @@ def main() -> None:
     input_path = output_directory / "monthly_sales.csv"
     config_path = output_directory / "x13.json"
     adjusted_path = output_directory / "monthly_sales_adjusted.csv"
+    audit_directory = output_directory / "audit"
 
     input_frame = load_monthly_retail()[["sales"]].rename(columns={"sales": "value"})
     input_frame.to_csv(input_path)
@@ -32,15 +33,21 @@ def main() -> None:
         input_path,
         config=config_path,
         output=adjusted_path,
+        audit=audit_directory,
         detailed=True,
     )
     adjusted = pd.read_csv(adjusted_path)
+    audit_manifest_path = next(audit_directory.glob("*.json"))
+    audit_manifest = json.loads(audit_manifest_path.read_text(encoding="utf-8"))
 
     print(f"Input rows: {len(input_frame)}")
     print(f"Adjusted rows: {len(adjusted)}")
     print(f"Output columns: {', '.join(adjusted.columns)}")
     print(f"Diagnostics: {len(result.diagnostics)}")
     print(f"Processing messages: {len(result.messages)}")
+    print(f"Audit run: {audit_manifest['run_id']} ({audit_manifest['status']})")
+    print(f"Input SHA-256: {audit_manifest['input']['sha256']}")
+    print(f"Configuration SHA-256: {audit_manifest['configuration_sha256']}")
     if result.arima_model is not None:
         print(f"ARIMA model: {result.arima_model.notation}")
 
@@ -57,6 +64,9 @@ def main() -> None:
 
     assert len(adjusted) == len(input_frame)
     assert list(adjusted.columns) == ["date", "y", "ycal", "sa", "t", "s", "i"]
+    assert audit_manifest["status"] == "success"
+    assert len((audit_directory / "runs.jsonl").read_text().splitlines()) == 1
+    assert str(input_frame.iloc[0, 0]) not in audit_manifest_path.read_text(encoding="utf-8")
     print(f"Saved workflow files under {output_directory}/")
 
 

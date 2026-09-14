@@ -3,12 +3,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
 from .config import AdjustmentConfig
-from .csv_io import PERIODS_PER_YEAR, _process_csv, _read_csv, _start, _write_csv
+from .csv_io import PERIODS_PER_YEAR, _execute_csv, _read_csv, _start, _write_csv
 from .engine import adjust
 from .plotting import plot_adjustment
 from .readiness import is_ready, run_readiness_checks
@@ -31,6 +30,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("-c", "--config", type=Path, help="JSON adjustment configuration")
     parser.add_argument("-o", "--output", type=Path, help="output CSV (default: stdout)")
+    parser.add_argument("--audit", type=Path, help="write structured audit records")
     parser.add_argument("--method", choices=("x13", "tramoseats"), help="processing method")
     parser.add_argument("--spec", help="JDemetra+ preset, such as RSA4 or RSAfull")
     parser.add_argument(
@@ -138,27 +138,23 @@ def run(argv: Sequence[str] | None = None) -> int:
         input_path = args.data or args.input
         if input_path is None:
             raise ValueError("a data file is required; use --data FILE or a positional path")
-        config = AdjustmentConfig.load(args.config)
         overrides = {
             name: getattr(args, name)
             for name in ("method", "spec", "frequency", "date_column", "value_column")
             if getattr(args, name) is not None
         }
-        if overrides:
-            config = replace(config, **overrides)
-        config.validate()
         wants_plot = args.plot or args.plot_output is not None
-        dates, engine_result = _process_csv(
+        dates, engine_result = _execute_csv(
             input_path,
-            config,
+            config=args.config,
+            overrides=overrides,
+            output=args.output,
+            audit=args.audit,
             detailed=wants_plot,
             adjustment_function=adjust,
         )
         result = engine_result.to_compact_dict()
-        if args.output:
-            with args.output.open("w", newline="", encoding="utf-8") as stream:
-                _write_csv(stream, dates, result)
-        else:
+        if not args.output:
             _write_csv(sys.stdout, dates, result)
         if wants_plot:
             figure = plot_adjustment(

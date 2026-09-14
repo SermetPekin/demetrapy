@@ -107,6 +107,7 @@ demetrapy \
 | `--data FILE` | `-d` | Explicit CSV data file |
 | `--config FILE` | `-c` | JSON adjustment configuration |
 | `--output FILE` | `-o` | Output CSV; defaults to standard output |
+| `--audit DIRECTORY` | | Write an audit manifest and append-only run history |
 | `--method METHOD` | | `x13` or `tramoseats` |
 | `--spec NAME` | | JDemetra+ preset such as `RSA4` or `RSAfull` |
 | `--frequency NAME` | | `Monthly`, `Quarterly`, `HalfYearly`, or `Yearly` |
@@ -199,6 +200,26 @@ demetrapy init-config --method tramoseats --output tramoseats.json
 ```
 
 Existing files are protected. Pass `--force` only when replacement is intended.
+
+### Audit Records
+
+Audit recording is opt-in and does not change processing results:
+
+```bash
+demetrapy input.csv --config config.json --output adjusted.csv --audit audit/
+```
+
+Each attempt writes a uniquely named JSON manifest and appends the same object
+to `audit/runs.jsonl`. Successful records include normalized configuration,
+package and engine versions, input/configuration/output SHA-256 hashes,
+diagnostics, processing messages, fitted ARIMA metadata, row count, and period
+range. Failed attempts include the exception type and message, then return the
+normal nonzero CLI status.
+
+Records use `audit_schema_version` for compatibility checks. They contain file
+names rather than absolute paths and never include source observations,
+environment variables, usernames, or credentials. Inline user-variable values
+are replaced by their count and SHA-256 hash.
 
 ## Toy Datasets and Recipes
 
@@ -518,6 +539,7 @@ result = adjust_csv(
   "monthly_sales.csv",
   config="x13.json",
   output="monthly_sales_adjusted.csv",
+  audit="audit/",
   detailed=True,
 )
 print(result.arima_model.notation)

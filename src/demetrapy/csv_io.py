@@ -8,6 +8,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Callable, Sequence, TextIO
 
+from .audit import AuditRecorder
 from .config import AdjustmentConfig, FREQUENCIES
 from .engine import AdjustmentResult, adjust
 
@@ -20,16 +21,57 @@ def adjust_csv(
     *,
     config: str | Path | AdjustmentConfig | None = None,
     output: str | Path | None = None,
+    audit: str | Path | None = None,
     detailed: bool = False,
     **overrides: Any,
 ) -> AdjustmentResult:
     """Adjust one CSV value column and optionally write compact results."""
-    resolved = _resolve_config(config, overrides)
-    dates, result = _process_csv(Path(path), resolved, detailed=detailed)
-    if output is not None:
-        with Path(output).open("w", newline="", encoding="utf-8") as stream:
-            _write_csv(stream, dates, result.to_compact_dict())
+    _, result = _execute_csv(
+        Path(path),
+        config=config,
+        overrides=overrides,
+        output=Path(output) if output is not None else None,
+        audit=audit,
+        detailed=detailed,
+    )
     return result
+
+
+def _execute_csv(
+    path: Path,
+    *,
+    config: str | Path | AdjustmentConfig | None = None,
+    overrides: dict[str, Any] | None = None,
+    output: Path | None = None,
+    audit: str | Path | None = None,
+    detailed: bool = False,
+    adjustment_function: Callable[..., AdjustmentResult] | None = None,
+) -> tuple[list[str], AdjustmentResult]:
+    recorder = AuditRecorder(audit, path, output) if audit is not None else None
+    resolved = None
+    try:
+        resolved = _resolve_config(config, overrides)
+        dates, result = _process_csv(
+            path,
+            resolved,
+            detailed=detailed,
+            adjustment_function=adjustment_function,
+        )
+        if output is not None:
+            with output.open("w", newline="", encoding="utf-8") as stream:
+                _write_csv(stream, dates, result.to_compact_dict())
+        if recorder is not None:
+            recorder.success(resolved, dates, result)
+        return dates, result
+    except Exception as error:
+        if recorder is not None:
+            try:
+                recorder.failure(error, resolved)
+            except Exception as audit_error:
+                add_note = getattr(error, "add_note", None)
+                if add_note is not None:
+                    add_note(f"audit record could not be written: {audit_error}")
+        raise
 
 
 def _resolve_config(

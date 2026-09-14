@@ -155,6 +155,13 @@ from demetrapy import adjust_csv
 result = adjust_csv("input.csv", config="config.json", output="adjusted.csv")
 ```
 
+For reproducible operational runs, opt in to a JSON audit manifest and
+append-only history without storing observation values:
+
+```python
+result = adjust_csv("input.csv", output="adjusted.csv", audit="audit/")
+```
+
 ## Specifications and regressors
 
 The package constructs an isolated JDemetra+ processing context for each

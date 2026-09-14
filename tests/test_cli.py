@@ -79,6 +79,33 @@ class ConfigTest(unittest.TestCase):
 
 
 class CliTest(unittest.TestCase):
+    @patch("demetrapy.cli.adjust")
+    def test_audit_option_writes_manifest(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result(
+            {name: [10.0, 20.0] for name in ("y", "ycal", "sa", "t", "s", "i")}
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.csv"
+            output_path = root / "output.csv"
+            audit_path = root / "audit"
+            input_path.write_text("date,value\n2024-01-01,10\n2024-02-01,20\n")
+
+            exit_code = run(
+                [
+                    str(input_path),
+                    "--output",
+                    str(output_path),
+                    "--audit",
+                    str(audit_path),
+                ]
+            )
+
+            manifest = json.loads(next(audit_path.glob("*.json")).read_text())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(manifest["status"], "success")
+
     @patch("demetrapy.cli.run_readiness_checks")
     def test_check_reports_ready_environment(self, mock_checks) -> None:
         mock_checks.return_value = (

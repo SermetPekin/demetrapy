@@ -1,5 +1,6 @@
 """Python access to JDemetra+ seasonal adjustment."""
 
+from .audit import AUDIT_SCHEMA_VERSION
 from .engine import (
 	COMPACT_COMPONENTS,
 	FORECAST_COMPONENTS,
@@ -28,6 +29,7 @@ __all__ = [
 	"AdjustmentForecasts",
 	"AdjustmentResult",
 	"ArimaModel",
+	"AUDIT_SCHEMA_VERSION",
 	"COMPACT_COMPONENTS",
 	"CalendarDataset",
 	"FORECAST_COMPONENTS",

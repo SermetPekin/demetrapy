@@ -1,10 +1,12 @@
 import csv
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from demetrapy import adjust_csv
+from demetrapy.config import AdjustmentConfig
 from demetrapy.engine import AdjustmentComponents, AdjustmentResult, OutputSeries
 
 
@@ -64,6 +66,87 @@ class AdjustCsvTest(unittest.TestCase):
     def test_rejects_unknown_override(self) -> None:
         with self.assertRaisesRegex(ValueError, "invalid config override"):
             adjust_csv("unused.csv", unknown_option=True)
+
+    @patch("demetrapy.csv_io.adjust")
+    def test_writes_success_manifest_and_history(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.csv"
+            output_path = root / "adjusted.csv"
+            audit_path = root / "audit"
+            input_path.write_text(
+                "date,value\n2024-01-01,10\n2024-02-01,20\n",
+                encoding="utf-8",
+            )
+
+            adjust_csv(
+                input_path,
+                output=output_path,
+                audit=audit_path,
+            )
+            manifest_path = next(
+                path for path in audit_path.glob("*.json") if path.name != "runs.jsonl"
+            )
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            history = [
+                json.loads(line)
+                for line in (audit_path / "runs.jsonl").read_text(encoding="utf-8").splitlines()
+            ]
+
+        self.assertEqual(manifest["status"], "success")
+        self.assertEqual(manifest["input"]["filename"], "input.csv")
+        self.assertEqual(manifest["input"]["rows"], 2)
+        self.assertEqual(len(manifest["input"]["sha256"]), 64)
+        self.assertEqual(manifest["output"]["filename"], "adjusted.csv")
+        self.assertEqual(len(manifest["output"]["sha256"]), 64)
+        self.assertEqual(manifest["result"]["method"], "x13")
+        self.assertEqual(history, [manifest])
+
+    @patch("demetrapy.csv_io.adjust", side_effect=RuntimeError("processing failed"))
+    def test_writes_failure_manifest_and_preserves_exception(self, mock_adjust) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.csv"
+            audit_path = root / "audit"
+            input_path.write_text(
+                "date,value\n2024-01-01,10\n2024-02-01,20\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "processing failed"):
+                adjust_csv(input_path, audit=audit_path)
+            manifest_path = next(audit_path.glob("*.json"))
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(manifest["status"], "failed")
+        self.assertEqual(manifest["exception"]["type"], "RuntimeError")
+        self.assertEqual(manifest["exception"]["message"], "processing failed")
+        self.assertIsNone(manifest["result"])
+
+    @patch("demetrapy.csv_io.adjust")
+    def test_redacts_inline_variable_values(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result()
+        config = AdjustmentConfig(
+            user_variables=[{"name": "promotion", "values": [0.0, 1.0]}]
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.csv"
+            audit_path = root / "audit"
+            input_path.write_text(
+                "date,value\n2024-01-01,10\n2024-02-01,20\n",
+                encoding="utf-8",
+            )
+
+            adjust_csv(input_path, config=config, audit=audit_path)
+            manifest_path = next(audit_path.glob("*.json"))
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        values = manifest["configuration"]["user_variables"][0]["values"]
+        self.assertTrue(values["redacted"])
+        self.assertEqual(values["count"], 2)
+        self.assertEqual(len(values["sha256"]), 64)
 
 
 if __name__ == "__main__":

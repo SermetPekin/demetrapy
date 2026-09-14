@@ -57,6 +57,9 @@ settings, missing columns, invalid numbers, and an invalid first date.
 demetrapy monthly_sales.csv --config x13.json --output adjusted.csv
 ```
 
+Add `--audit audit/` to write a JSON manifest for the run and append the same
+record to `audit/runs.jsonl`.
+
 The output contains observed (`y`), calendar-adjusted (`ycal`), seasonally
 adjusted (`sa`), trend (`t`), seasonal (`s`), and irregular (`i`) series.
 
@@ -69,6 +72,7 @@ result = adjust_csv(
     "monthly_sales.csv",
     config="x13.json",
     output="adjusted.csv",
+    audit="audit/",
     detailed=True,
 )
 
