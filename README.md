@@ -14,7 +14,12 @@ yearly data, calendars, regressors, outliers, ARIMA models, and forecasts.
 
 ```bash
 python -m pip install demetrapy
+demetrapy check
 ```
+
+New users can follow the
+[five-minute quickstart](https://github.com/SermetPekin/demetrapy/blob/main/docs/QUICKSTART.md)
+from installation through validation and the first adjustment.
 
 For development from a clone:
 
@@ -134,6 +139,21 @@ demetrapy \
 The output contains `y`, `ycal`, `sa`, `t`, `s`, and `i`. See the
 [usage guide](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md)
 for all options.
+
+Validate a configuration without starting Java, or create a starter template:
+
+```bash
+demetrapy validate config.json --data input.csv
+demetrapy init-config --method tramoseats --output config.json
+```
+
+Python callers can process the same files directly:
+
+```python
+from demetrapy import adjust_csv
+
+result = adjust_csv("input.csv", config="config.json", output="adjusted.csv")
+```
 
 ## Specifications and regressors
 

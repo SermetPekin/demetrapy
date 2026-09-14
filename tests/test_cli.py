@@ -8,6 +8,7 @@ from unittest.mock import patch
 from demetrapy.cli import run
 from demetrapy.config import AdjustmentConfig
 from demetrapy.engine import AdjustmentComponents, AdjustmentResult, OutputSeries
+from demetrapy.readiness import ReadinessCheck
 
 
 def adjustment_result(values_by_component, *, detailed=False):
@@ -56,8 +57,116 @@ class ConfigTest(unittest.TestCase):
 
         self.assertEqual(variables, [{"name": "promotion", "values": [0.0, 1.0]}])
 
+    def test_templates_are_valid(self) -> None:
+        for method in ("x13", "tramoseats"):
+            config = AdjustmentConfig.template(method)
+            config.validate()
+            self.assertEqual(config.method, method)
+
+    def test_rejects_wrong_method_options_without_starting_java(self) -> None:
+        with self.assertRaisesRegex(ValueError, "X11 options"):
+            AdjustmentConfig(
+                method="tramoseats", forecast_horizon=12
+            ).validate()
+        with self.assertRaisesRegex(ValueError, "seats options"):
+            AdjustmentConfig(seats={"prediction_length": 12}).validate()
+
+    def test_rejects_invalid_specification_and_nested_options(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported x13 specification"):
+            AdjustmentConfig(spec="RSAfull").validate()
+        with self.assertRaisesRegex(ValueError, "preprocessing sections"):
+            AdjustmentConfig(preprocessing={"unknown": {}}).validate()
+
 
 class CliTest(unittest.TestCase):
+    @patch("demetrapy.cli.run_readiness_checks")
+    def test_check_reports_ready_environment(self, mock_checks) -> None:
+        mock_checks.return_value = (
+            ReadinessCheck("Python", "OK", "3.11 (64-bit)"),
+            ReadinessCheck("Java", "OK", "17 (aarch64)"),
+        )
+
+        self.assertEqual(run(["check"]), 0)
+
+    @patch("demetrapy.cli.run_readiness_checks")
+    def test_check_returns_two_for_blocking_error(self, mock_checks) -> None:
+        mock_checks.return_value = (
+            ReadinessCheck(
+                "Java",
+                "ERROR",
+                "not found",
+                "Install Java 8 or later.",
+            ),
+        )
+
+        self.assertEqual(run(["check"]), 2)
+
+    def test_validates_config_without_running_adjustment(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "config.json"
+            normalized_path = Path(directory) / "normalized.json"
+            config_path.write_text(
+                json.dumps({"method": "x13", "spec": "RSA4"}),
+                encoding="utf-8",
+            )
+
+            with patch("demetrapy.cli.adjust") as mock_adjust:
+                exit_code = run(
+                    ["validate", str(config_path), "--output", str(normalized_path)]
+                )
+
+            normalized = json.loads(normalized_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(normalized["frequency"], "Monthly")
+        mock_adjust.assert_not_called()
+
+    def test_validate_rejects_wrong_method_options(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "method": "tramoseats",
+                        "spec": "RSA4",
+                        "forecast_horizon": 12,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(run(["validate", str(config_path)]), 2)
+
+    def test_init_config_writes_valid_template_and_protects_existing_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "x13.json"
+
+            self.assertEqual(
+                run(
+                    [
+                        "init-config",
+                        "--method",
+                        "x13",
+                        "--output",
+                        str(output_path),
+                    ]
+                ),
+                0,
+            )
+            config = AdjustmentConfig.load(output_path)
+            second_exit_code = run(
+                [
+                    "init-config",
+                    "--method",
+                    "x13",
+                    "--output",
+                    str(output_path),
+                ]
+            )
+
+        self.assertEqual(config.method, "x13")
+        self.assertEqual(second_exit_code, 2)
+
     @patch("demetrapy.cli.adjust")
     def test_writes_adjusted_csv(self, mock_adjust) -> None:
         mock_adjust.return_value = adjustment_result({

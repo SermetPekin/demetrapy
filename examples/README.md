@@ -51,17 +51,46 @@ Run them in order or copy the relevant configuration:
 | `07_compare_methods.py` | component-level comparison metrics for both engines |
 | `08_advanced_tramoseats.py` | full TRAMO/SEATS options with a UserDefined calendar |
 | `09_bulk_processing_audit.py` | fault-tolerant company batch with success/failure audit files |
+| `10_csv_workflow.py` | configuration template, validation, `adjust_csv()`, and output files |
 
 ```bash
 python examples/01_basic_models.py
 python examples/03_x13_models.py
 python examples/09_bulk_processing_audit.py
+python examples/10_csv_workflow.py
 ```
 
 The bulk-processing example continues after an item fails. It writes a detailed
 log with tracebacks, a CSV report with one row per job, and an adjusted CSV for
 each successful job under `bulk_run_output/`. One invalid job is included to
 demonstrate failure reporting.
+
+The CSV workflow example creates its input from the monthly toy dataset,
+generates and validates an X13 configuration, processes the file with
+`adjust_csv()`, and demonstrates how an invalid method-specific option is
+reported.
+
+The equivalent command-line workflow is:
+
+```bash
+demetrapy init-config --method x13 --output x13.json
+demetrapy validate x13.json --data monthly_sales.csv
+demetrapy monthly_sales.csv --config x13.json --output adjusted.csv
+```
+
+In Python, `adjust_csv()` returns the same stable result object as `adjust()`:
+
+```python
+from demetrapy import adjust_csv
+
+result = adjust_csv(
+    "monthly_sales.csv",
+    config="x13.json",
+    output="adjusted.csv",
+    detailed=True,
+)
+print(result.arima_model.notation)
+```
 
 The model dictionaries are examples of API syntax, not universal statistical
 recommendations. Check diagnostics for real data.

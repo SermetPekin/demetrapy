@@ -13,6 +13,7 @@ from .engine import (
 	adjust,
 )
 from .dataframe import DataFrameAdjustmentResult, adjust_dataframe
+from .csv_io import adjust_csv
 from .datasets import (
 	CalendarDataset,
 	load_monthly_retail,
@@ -35,6 +36,7 @@ __all__ = [
 	"ProcessingMessage",
 	"RESULT_SCHEMA_VERSION",
 	"adjust",
+	"adjust_csv",
 	"adjust_dataframe",
 	"load_monthly_retail",
 	"load_quarterly_production",

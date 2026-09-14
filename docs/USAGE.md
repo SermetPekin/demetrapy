@@ -22,7 +22,16 @@ Confirm that the command is available:
 
 ```bash
 demetrapy --help
+demetrapy check
 ```
+
+`demetrapy check` reports Python, JPype, Java, architecture compatibility, and
+JDemetra+ JAR readiness. It does not start the JVM, access the network, or
+modify the cache. `WARNING` items do not block processing; `ERROR` items return
+exit code `2` and include a corrective action.
+
+For the shortest end-to-end path, use the
+[five-minute quickstart](https://github.com/SermetPekin/demetrapy/blob/main/docs/QUICKSTART.md).
 
 On its first adjustment, the package downloads JDemetra+ core 2.2.6 from
 Maven Central and caches it in `~/.cache/demetrapy`. No JAR configuration is
@@ -157,6 +166,40 @@ demetrapy --data "data/monthly sales.csv" --output "results/adjusted sales.csv"
 The CLI processes one value column per invocation. Use `adjust_dataframe()`
 from Python to process multiple target columns in one call.
 
+### Validate Before Processing
+
+Validate JSON structure, method-specific options, and preset compatibility
+without starting Java:
+
+```bash
+demetrapy validate config.json
+```
+
+Include a data file to also check required columns, numeric values, and the
+first date:
+
+```bash
+demetrapy validate config.json --data input.csv
+```
+
+Write a normalized configuration containing explicit defaults for audit or
+review:
+
+```bash
+demetrapy validate config.json --output normalized.json
+```
+
+### Create a Starter Configuration
+
+Generate a validated template for either engine:
+
+```bash
+demetrapy init-config --method x13 --output x13.json
+demetrapy init-config --method tramoseats --output tramoseats.json
+```
+
+Existing files are protected. Pass `--force` only when replacement is intended.
+
 ## Toy Datasets and Recipes
 
 Deterministic synthetic datasets are included for experimentation:
@@ -180,6 +223,7 @@ python examples/06_calendar_variables.py
 python examples/07_compare_methods.py
 python examples/08_advanced_tramoseats.py
 python examples/09_bulk_processing_audit.py
+python examples/10_csv_workflow.py
 ```
 
 Each method-specific recipe applies several configurations to the same input,
@@ -462,6 +506,29 @@ date,y,sa,t,s,i
 
 ## Python API
 
+### CSV Files
+
+`adjust_csv()` applies the same single-series CSV and configuration rules as
+the command line. It returns an `AdjustmentResult`; `output` is optional.
+
+```python
+from demetrapy import adjust_csv
+
+result = adjust_csv(
+  "monthly_sales.csv",
+  config="x13.json",
+  output="monthly_sales_adjusted.csv",
+  detailed=True,
+)
+print(result.arima_model.notation)
+```
+
+Configuration fields can be overridden explicitly:
+
+```python
+result = adjust_csv("monthly_sales.csv", method="x13", spec="RSA5")
+```
+
 The same engine can be called directly. `start_period` is one-based, so January
 or the first quarter is `1`.
 
@@ -619,7 +686,14 @@ result = adjust(
     benchmarking=True,
 )
 For a DataFrame result, use `result.for_series(target).arima_model`.
+
 ## Troubleshooting
+
+Start with the environment readiness report:
+
+```bash
+demetrapy check
+```
 
 - `CSV must contain columns`: set `date_column` and `value_column` to match the
   CSV header.

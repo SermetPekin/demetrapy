@@ -29,6 +29,7 @@ py -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e .
 demetrapy --help
+demetrapy check
 ```
 
 ## Automatic JAR Download
@@ -144,6 +145,10 @@ python -m unittest discover -s tests
 ```
 
 ## Troubleshooting
+
+Run `demetrapy check` first. It reports Java discovery, Python/Java architecture
+compatibility, and the configured or cached JDemetra+ JAR without downloading
+or changing anything.
 
 - `DEMETRAPY_JAR does not point to a file`: verify the full path, filename,
   and `.jar` extension. Remove the override to return to automatic downloading.

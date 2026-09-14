@@ -36,6 +36,16 @@ selected JDemetra preset. For example, `method="tramoseats", spec="RSAfull"`
 uses the complete JDemetra `RSAfull` defaults unless individual sections are
 overridden.
 
+Create a starter file and validate it before processing:
+
+```bash
+demetrapy init-config --method x13 --output config.json
+demetrapy validate config.json --data input.csv
+```
+
+Validation checks JSON structure, supported presets, wrong-engine options,
+nested option names, ARIMA orders, and CSV requirements without starting Java.
+
 ## Compatible Groups
 
 | Group | X13 | TRAMO/SEATS |
