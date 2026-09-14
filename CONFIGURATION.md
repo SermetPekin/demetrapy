@@ -107,11 +107,11 @@ preprocessing={
 
 This represents:
 
-$$
-\operatorname{ARIMA}(p,d,q)(bp,bd,bq)_s
-$$
+```bash 
+{ARIMA}(p,d,q)(bp,bd,bq)_s
+```
 
-where $s$ is determined by the series frequency. Orders must be non-negative
+where `s` is determined by the series frequency. Orders must be non-negative
 integers and `mean` must be Boolean.
 
 Explicit orders disable automatic model selection. If both `arima` and
