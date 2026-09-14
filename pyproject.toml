@@ -17,6 +17,7 @@ dependencies = [
 	"matplotlib>=3.8,<4",
 	"plotly>=6,<7",
 	"streamlit>=1.40,<2",
+	"openpyxl>=3.1.5",
 ]
 keywords = ["seasonal-adjustment", "jdemetra", "x13", "tramo-seats", "time-series"]
 classifiers = [
