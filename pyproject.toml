@@ -4,8 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "demetrapy"
-version = "0.1.3"
-description = "A Python CLI for seasonal adjustment with JDemetra+ core"
+version = "0.1.5"
+description = "Python toolkit for seasonal adjustment with JDemetra+ X13 and TRAMO/SEATS"
+authors = [{ name = "Sermet Pekin", email = "sermet.pekin@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.9"
 license = "GPL-3.0-or-later"
@@ -25,6 +26,7 @@ classifiers = [
 	"Intended Audience :: Science/Research",
 	"Programming Language :: Python :: 3",
 	"Programming Language :: Python :: 3 :: Only",
+	"Topic :: Software Development :: Libraries :: Python Modules",
 	"Topic :: Scientific/Engineering :: Information Analysis",
 ]
 

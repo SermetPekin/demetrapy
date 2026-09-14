@@ -2,10 +2,11 @@
 
 [![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
 
-`demetrapy` provides Python and command-line access to the seasonal-adjustment
-procedures in [JDemetra+](https://github.com/jdemetra/jdemetra-core). It runs
-the JDemetra+ X13 and TRAMO/SEATS implementations through JPype; it does not
-reimplement either procedure in Python.
+`demetrapy` is a Python toolkit for the seasonal-adjustment procedures in
+[JDemetra+](https://github.com/jdemetra/jdemetra-core). It provides a Python
+API for individual and pandas-based workflows, a command-line interface, and
+an interactive dashboard. Calculations use the JDemetra+ X13 and TRAMO/SEATS
+implementations through JPype; neither procedure is reimplemented in Python.
 
 The package is intended for empirical work in which adjustment specifications
 must be recorded, repeated, and applied to several series. It accepts regular
