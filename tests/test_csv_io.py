@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from demetrapy import adjust_csv
+from demetrapy import TramoSeatsConfig, adjust_csv
 from demetrapy.config import AdjustmentConfig
 from demetrapy.engine import AdjustmentComponents, AdjustmentResult, OutputSeries
 
@@ -41,6 +41,31 @@ def adjustment_result() -> AdjustmentResult:
 
 class AdjustCsvTest(unittest.TestCase):
     @patch("demetrapy.csv_io.adjust")
+    def test_accepts_method_specific_config(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result()
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "input.csv"
+            input_path.write_text(
+                "date,value\n2024-01-01,10\n2024-02-01,20\n",
+                encoding="utf-8",
+            )
+
+            adjust_csv(
+                input_path,
+                config=TramoSeatsConfig(
+                    spec="RSAfull",
+                    seats={"prediction_length": 12},
+                ),
+            )
+
+        self.assertEqual(mock_adjust.call_args.kwargs["method"], "tramoseats")
+        self.assertEqual(mock_adjust.call_args.kwargs["spec"], "RSAfull")
+        self.assertEqual(
+            mock_adjust.call_args.kwargs["seats"],
+            {"prediction_length": 12},
+        )
+
+    @patch("demetrapy.csv_io.adjust")
     def test_returns_result_and_writes_compact_csv(self, mock_adjust) -> None:
         mock_adjust.return_value = adjustment_result()
         with tempfile.TemporaryDirectory() as directory:
@@ -66,6 +91,14 @@ class AdjustCsvTest(unittest.TestCase):
     def test_rejects_unknown_override(self) -> None:
         with self.assertRaisesRegex(ValueError, "invalid config override"):
             adjust_csv("unused.csv", unknown_option=True)
+
+    def test_rejects_override_that_conflicts_with_typed_config(self) -> None:
+        with self.assertRaisesRegex(ValueError, "method"):
+            adjust_csv(
+                "unused.csv",
+                config=TramoSeatsConfig(),
+                method="x13",
+            )
 
     @patch("demetrapy.csv_io.adjust")
     def test_writes_success_manifest_and_history(self, mock_adjust) -> None:

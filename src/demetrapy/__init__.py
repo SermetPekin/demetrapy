@@ -1,6 +1,7 @@
 """Python access to JDemetra+ seasonal adjustment."""
 
 from .audit import AUDIT_SCHEMA_VERSION
+from .config import AdjustmentConfig, TramoSeatsConfig, X13Config
 from .engine import (
 	COMPACT_COMPONENTS,
 	FORECAST_COMPONENTS,
@@ -26,6 +27,7 @@ from .plotting import plot_adjustment
 
 __all__ = [
 	"AdjustmentComponents",
+	"AdjustmentConfig",
 	"AdjustmentForecasts",
 	"AdjustmentResult",
 	"ArimaModel",
@@ -37,6 +39,8 @@ __all__ = [
 	"OutputSeries",
 	"ProcessingMessage",
 	"RESULT_SCHEMA_VERSION",
+	"TramoSeatsConfig",
+	"X13Config",
 	"adjust",
 	"adjust_csv",
 	"adjust_dataframe",

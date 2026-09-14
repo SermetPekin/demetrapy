@@ -4,7 +4,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from demetrapy import COMPACT_COMPONENTS, FORECAST_COMPONENTS, RESULT_SCHEMA_VERSION
+from demetrapy import (
+    COMPACT_COMPONENTS,
+    FORECAST_COMPONENTS,
+    RESULT_SCHEMA_VERSION,
+    X13Config,
+)
 from demetrapy.engine import AdjustmentResult, _jar_path, adjust
 
 
@@ -33,6 +38,28 @@ class JarPathTest(unittest.TestCase):
 
 
 class ProcessingTest(unittest.TestCase):
+    def test_processes_method_specific_config(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(120)]
+
+        result = adjust(
+            values,
+            start_year=2015,
+            config=X13Config(spec="RSA4", forecast_horizon=12),
+        )
+
+        self.assertEqual(result.method, "x13")
+        self.assertEqual(result.specification, "RSA4")
+        self.assertEqual(len(result.seasonally_adjusted.values), 120)
+
+    def test_rejects_options_that_conflict_with_config(self) -> None:
+        with self.assertRaisesRegex(ValueError, "spec"):
+            adjust(
+                [100.0] * 120,
+                start_year=2015,
+                config=X13Config(spec="RSA5"),
+                spec="RSA3",
+            )
+
     def test_rejects_start_period_outside_frequency(self) -> None:
         with self.assertRaisesRegex(ValueError, "between 1 and 12 for Monthly"):
             adjust([100.0] * 120, start_year=2015, start_period=13)

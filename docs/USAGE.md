@@ -532,6 +532,45 @@ date,y,sa,t,s,i
 `adjust_csv()` applies the same single-series CSV and configuration rules as
 the command line. It returns an `AdjustmentResult`; `output` is optional.
 
+### Choose a Configuration Style
+
+All three styles below describe the same X13 run. Use one style per call.
+
+| Style | Choose it when |
+| --- | --- |
+| `X13Config` or `TramoSeatsConfig` | Python discoverability and reuse matter |
+| Direct keywords | the configuration is short and used once |
+| JSON file | configuration must be reviewed, stored, or shared with the CLI |
+
+**Method-specific object:**
+
+```python
+from demetrapy import X13Config, adjust_csv
+
+config = X13Config(spec="RSA4", forecast_horizon=12)
+result = adjust_csv(
+  "monthly_sales.csv",
+  config=config,
+  output="monthly_sales_adjusted.csv",
+)
+```
+
+**Direct keywords:**
+
+```python
+from demetrapy import adjust_csv
+
+result = adjust_csv(
+  "monthly_sales.csv",
+  method="x13",
+  spec="RSA4",
+  forecast_horizon=12,
+  output="monthly_sales_adjusted.csv",
+)
+```
+
+**JSON file:**
+
 ```python
 from demetrapy import adjust_csv
 
@@ -545,11 +584,32 @@ result = adjust_csv(
 print(result.arima_model.notation)
 ```
 
-Configuration fields can be overridden explicitly:
+`X13Config` and `TramoSeatsConfig` expose only options supported by their
+respective engines. They can be reused with `adjust()`, `adjust_csv()`, and
+`adjust_dataframe()`:
 
 ```python
-result = adjust_csv("monthly_sales.csv", method="x13", spec="RSA5")
+from demetrapy import TramoSeatsConfig, X13Config, adjust, adjust_dataframe
+
+x13 = X13Config(
+  spec="RSA4",
+  seasonal_filter="S3X5",
+  forecast_horizon=12,
+)
+tramoseats = TramoSeatsConfig(
+  spec="RSAfull",
+  seats={"prediction_length": 12},
+)
+
+x13_result = adjust(values, start_year=2019, config=x13)
+tramoseats_result = adjust_dataframe(frame, config=tramoseats)
 ```
+
+Calling `to_adjustment_config()` returns the normalized `AdjustmentConfig`,
+and `to_dict()` produces the same serializable structure used by JSON files.
+Do not combine `config=` with model-setting keywords; conflicting values are
+rejected. Existing keyword calls, JSON files, and `AdjustmentConfig` remain
+fully supported.
 
 The same engine can be called directly. `start_period` is one-based, so January
 or the first quarter is `1`.

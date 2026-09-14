@@ -63,7 +63,10 @@ record to `audit/runs.jsonl`.
 The output contains observed (`y`), calendar-adjusted (`ycal`), seasonally
 adjusted (`sa`), trend (`t`), seasonal (`s`), and irregular (`i`) series.
 
-The equivalent Python workflow is:
+Python users can choose a JSON file, a typed object, or direct keywords. All
+three calls below perform the same X13 adjustment.
+
+Use JSON when configuration is shared with the CLI:
 
 ```python
 from demetrapy import adjust_csv
@@ -80,6 +83,30 @@ print(result.seasonally_adjusted.values)
 print(result.diagnostics)
 print(result.messages)
 ```
+
+Use a typed object for discoverable, reusable Python configuration:
+
+```python
+from demetrapy import X13Config, adjust_csv
+
+config = X13Config(spec="RSA4", forecast_horizon=12)
+result = adjust_csv("monthly_sales.csv", config=config, output="adjusted.csv")
+```
+
+Use direct keywords for a short one-off call:
+
+```python
+result = adjust_csv(
+    "monthly_sales.csv",
+    output="adjusted.csv",
+    method="x13",
+    spec="RSA4",
+    forecast_horizon=12,
+)
+```
+
+Use only one configuration style in a call. Existing keyword and JSON calls
+remain supported.
 
 A complete runnable version using the built-in toy data is available in
 [`examples/10_csv_workflow.py`](https://github.com/SermetPekin/demetrapy/blob/main/examples/10_csv_workflow.py).

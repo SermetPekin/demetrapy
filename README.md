@@ -93,6 +93,45 @@ seasonal_forecast = result.forecasts.seasonal
 forecast_values = result.to_forecast_dict()
 ```
 
+### Choose a configuration style
+
+These interfaces run the same engine. Choose one style per call:
+
+| Style | Best for |
+| --- | --- |
+| Method-specific object | reusable, discoverable Python configuration |
+| Direct keywords | short one-off Python calls |
+| JSON file | CLI workflows and reviewed configuration files |
+
+Method-specific objects prevent X11 and SEATS settings from being mixed:
+
+```python
+from demetrapy import TramoSeatsConfig, X13Config, adjust_dataframe
+
+x13 = X13Config(spec="RSA4", forecast_horizon=12)
+tramoseats = TramoSeatsConfig(
+  spec="RSAfull",
+  seats={"prediction_length": 12},
+)
+
+x13_result = adjust_dataframe(data, config=x13)
+tramoseats_result = adjust_dataframe(data, config=tramoseats)
+```
+
+The equivalent direct-keyword call is:
+
+```python
+x13_result = adjust_dataframe(
+  data,
+  method="x13",
+  spec="RSA4",
+  forecast_horizon=12,
+)
+```
+
+The same settings can instead live in JSON for `adjust_csv()` or the CLI.
+Existing code does not need to migrate.
+
 Set `detailed=True` to additionally populate the full JDemetra+ result
 dictionary, diagnostics, processing messages, backcasts, and fitted ARIMA
 model:

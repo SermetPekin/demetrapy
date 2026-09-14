@@ -23,6 +23,70 @@ X11_OPTIONS = (
 
 
 @dataclass(frozen=True)
+class X13Config:
+    frequency: str = "Monthly"
+    spec: str = "RSA4"
+    date_column: str = "date"
+    value_column: str = "value"
+    decomposition_mode: str | None = None
+    seasonal_filter: str | None = None
+    henderson_filter_length: int | None = None
+    lower_sigma: float | None = None
+    upper_sigma: float | None = None
+    forecast_horizon: int | None = None
+    backcast_horizon: int | None = None
+    benchmarking: bool = False
+    calendar: dict[str, Any] | None = None
+    user_variables: list[dict[str, Any]] = field(default_factory=list)
+    outliers: list[dict[str, Any]] = field(default_factory=list)
+    interventions: list[dict[str, Any]] = field(default_factory=list)
+    ramps: list[dict[str, Any]] = field(default_factory=list)
+    fixed_coefficients: dict[str, float | list[float]] = field(default_factory=dict)
+    preprocessing: dict[str, Any] | None = None
+    outlier_detection: dict[str, Any] | None = None
+
+    def to_adjustment_config(self) -> "AdjustmentConfig":
+        config = AdjustmentConfig(method="x13", **asdict(self))
+        config.validate()
+        return config
+
+    def validate(self) -> None:
+        self.to_adjustment_config()
+
+    def to_dict(self, *, omit_empty: bool = False) -> dict[str, Any]:
+        return self.to_adjustment_config().to_dict(omit_empty=omit_empty)
+
+
+@dataclass(frozen=True)
+class TramoSeatsConfig:
+    frequency: str = "Monthly"
+    spec: str = "RSA4"
+    date_column: str = "date"
+    value_column: str = "value"
+    benchmarking: bool = False
+    calendar: dict[str, Any] | None = None
+    user_variables: list[dict[str, Any]] = field(default_factory=list)
+    outliers: list[dict[str, Any]] = field(default_factory=list)
+    interventions: list[dict[str, Any]] = field(default_factory=list)
+    ramps: list[dict[str, Any]] = field(default_factory=list)
+    fixed_coefficients: dict[str, float | list[float]] = field(default_factory=dict)
+    preprocessing: dict[str, Any] | None = None
+    outlier_detection: dict[str, Any] | None = None
+    seats: dict[str, Any] | None = None
+
+    def to_adjustment_config(self) -> "AdjustmentConfig":
+        config = AdjustmentConfig(method="tramoseats", **asdict(self))
+        config.validate()
+        return config
+
+    def validate(self) -> None:
+        self.to_adjustment_config()
+
+    def to_dict(self, *, omit_empty: bool = False) -> dict[str, Any]:
+        return self.to_adjustment_config().to_dict(omit_empty=omit_empty)
+
+
+@dataclass(frozen=True)
 class AdjustmentConfig:
     frequency: str = "Monthly"
     method: str = "x13"
@@ -275,3 +339,13 @@ class AdjustmentConfig:
             for name, value in values.items()
             if value is not None and value != [] and value != {}
         }
+
+
+Config = AdjustmentConfig | X13Config | TramoSeatsConfig
+
+
+def normalize_config(config: Config) -> AdjustmentConfig:
+    if isinstance(config, AdjustmentConfig):
+        config.validate()
+        return config
+    return config.to_adjustment_config()

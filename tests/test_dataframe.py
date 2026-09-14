@@ -8,11 +8,35 @@ from demetrapy import (
     AdjustmentResult,
     DataFrameAdjustmentResult,
     OutputSeries,
+    X13Config,
     adjust_dataframe,
 )
 
 
 class DataFrameAdjustmentTest(unittest.TestCase):
+    def test_passes_method_specific_config_to_each_series(self) -> None:
+        index = pd.date_range("2015-01-01", periods=24, freq="MS")
+        data = pd.DataFrame({"sales": range(24)}, index=index)
+        config = X13Config(spec="RSA5")
+
+        with patch("demetrapy.dataframe.adjust") as mock_adjust:
+            output = OutputSeries(tuple(range(24)), "Monthly", 2015, 1)
+            mock_adjust.return_value = AdjustmentResult(
+                components=AdjustmentComponents(
+                    output, output, output, output, output, output
+                ),
+                method="x13",
+                specification="RSA5",
+                series={},
+                diagnostics={},
+                messages=(),
+            )
+
+            adjust_dataframe(data, config=config)
+
+        self.assertIs(mock_adjust.call_args.kwargs["config"], config)
+        self.assertEqual(mock_adjust.call_args.kwargs["frequency"], "Monthly")
+
     def test_registers_full_pool_and_selects_per_target(self) -> None:
         target_index = pd.date_range("2015-01-01", periods=36, freq="MS")
         pool_index = pd.date_range("2014-01-01", periods=60, freq="MS")

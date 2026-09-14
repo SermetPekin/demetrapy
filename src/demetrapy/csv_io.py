@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Sequence, TextIO
 
 from .audit import AuditRecorder
-from .config import AdjustmentConfig, FREQUENCIES
+from .config import AdjustmentConfig, Config, FREQUENCIES, normalize_config
 from .engine import AdjustmentResult, adjust
 
 
@@ -19,7 +19,7 @@ PERIODS_PER_YEAR = dict(zip(FREQUENCIES, (12, 4, 2, 1)))
 def adjust_csv(
     path: str | Path,
     *,
-    config: str | Path | AdjustmentConfig | None = None,
+    config: str | Path | Config | None = None,
     output: str | Path | None = None,
     audit: str | Path | None = None,
     detailed: bool = False,
@@ -40,7 +40,7 @@ def adjust_csv(
 def _execute_csv(
     path: Path,
     *,
-    config: str | Path | AdjustmentConfig | None = None,
+    config: str | Path | Config | None = None,
     overrides: dict[str, Any] | None = None,
     output: Path | None = None,
     audit: str | Path | None = None,
@@ -75,11 +75,30 @@ def _execute_csv(
 
 
 def _resolve_config(
-    config: str | Path | AdjustmentConfig | None,
+    config: str | Path | Config | None,
     overrides: dict[str, Any] | None = None,
 ) -> AdjustmentConfig:
-    resolved = config if isinstance(config, AdjustmentConfig) else AdjustmentConfig.load(config)
+    typed_config = config is not None and not isinstance(
+        config, (str, Path, AdjustmentConfig)
+    )
+    resolved = (
+        AdjustmentConfig.load(config)
+        if config is None or isinstance(config, (str, Path))
+        else normalize_config(config)
+    )
     if overrides:
+        if typed_config:
+            conflicts = sorted(
+                name
+                for name, value in overrides.items()
+                if not hasattr(resolved, name) or getattr(resolved, name) != value
+            )
+            if conflicts:
+                raise ValueError(
+                    "config conflicts with adjustment options: "
+                    + ", ".join(conflicts)
+                )
+            return resolved
         try:
             resolved = replace(resolved, **overrides)
         except TypeError as error:

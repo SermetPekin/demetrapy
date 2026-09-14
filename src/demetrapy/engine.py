@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import jpype
+
+from .config import Config, normalize_config
 import jpype.imports
 
 JDEMETRA_VERSION = "2.2.6"
@@ -189,6 +191,7 @@ def _ensure_jvm() -> None:
 def adjust(
     values: Sequence[float],
     *,
+    config: Config | None = None,
     frequency: str = "Monthly",
     start_year: int,
     start_period: int = 1,
@@ -215,6 +218,70 @@ def adjust(
     detailed: bool = False,
 ) -> AdjustmentResult:
     """Seasonally adjust one regular series using X13 or TRAMO/SEATS."""
+    if config is not None:
+        normalized = normalize_config(config)
+        configured = normalized.engine_options()
+        supplied = {
+            "frequency": frequency,
+            "method": method,
+            "spec": spec,
+            "decomposition_mode": decomposition_mode,
+            "seasonal_filter": seasonal_filter,
+            "henderson_filter_length": henderson_filter_length,
+            "lower_sigma": lower_sigma,
+            "upper_sigma": upper_sigma,
+            "forecast_horizon": forecast_horizon,
+            "backcast_horizon": backcast_horizon,
+            "benchmarking": benchmarking,
+            "user_variables": user_variables,
+            "calendar": calendar,
+            "outliers": outliers,
+            "interventions": interventions,
+            "ramps": ramps,
+            "fixed_coefficients": fixed_coefficients,
+            "preprocessing": preprocessing,
+            "outlier_detection": outlier_detection,
+            "seats": seats,
+        }
+        defaults = {
+            "frequency": "Monthly",
+            "method": "x13",
+            "spec": "RSA4",
+            "decomposition_mode": None,
+            "seasonal_filter": None,
+            "henderson_filter_length": None,
+            "lower_sigma": None,
+            "upper_sigma": None,
+            "forecast_horizon": None,
+            "backcast_horizon": None,
+            "benchmarking": False,
+            "user_variables": (),
+            "calendar": None,
+            "outliers": (),
+            "interventions": (),
+            "ramps": (),
+            "fixed_coefficients": None,
+            "preprocessing": None,
+            "outlier_detection": None,
+            "seats": None,
+        }
+        conflicts = sorted(
+            name
+            for name, value in supplied.items()
+            if value != defaults[name] and value != configured[name]
+        )
+        if conflicts:
+            raise ValueError(
+                "config conflicts with adjustment options: " + ", ".join(conflicts)
+            )
+        return adjust(
+            values,
+            start_year=start_year,
+            start_period=start_period,
+            calendar_variables=calendar_variables,
+            detailed=detailed,
+            **configured,
+        )
     if not values:
         raise ValueError("values must not be empty")
     if frequency not in _PERIODS_PER_YEAR:

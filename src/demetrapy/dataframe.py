@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import math
 from typing import Any
 
+from .config import Config
 from .engine import AdjustmentResult, adjust
 
 _FREQUENCIES = {
@@ -71,6 +72,7 @@ class DataFrameAdjustmentResult:
 def adjust_dataframe(
     data: Any,
     *,
+    config: Config | None = None,
     calendar_pool: Any | None = None,
     user_defined_calendars: Mapping[Any, Sequence[Any]] | None = None,
     detailed: bool = False,
@@ -148,6 +150,7 @@ def adjust_dataframe(
         target_start = data_periods[0]
         result = adjust(
             frame[target].tolist(),
+            config=config,
             frequency=data_frequency,
             start_year=target_start.year,
             start_period=_start_period(target_start, data_frequency),

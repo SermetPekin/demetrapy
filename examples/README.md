@@ -42,7 +42,7 @@ Run them in order or copy the relevant configuration:
 
 | File | Purpose |
 | --- | --- |
-| `01_basic_models.py` | X13 and TRAMO/SEATS basics |
+| `01_basic_models.py` | typed X13 and TRAMO/SEATS configurations |
 | `02_detailed_results.py` | components, forecasts, diagnostics, and CSV output |
 | `03_x13_models.py` | X11 filters, calendars, and outlier settings |
 | `04_tramoseats_models.py` | automatic and explicit ARIMA, calendars, and SEATS settings |
@@ -69,6 +69,18 @@ The CSV workflow example creates its input from the monthly toy dataset,
 generates and validates an X13 configuration, processes the file with
 `adjust_csv()`, writes a JSON audit manifest plus `runs.jsonl`, and demonstrates
 how an invalid method-specific option is reported.
+
+The examples intentionally show three equivalent configuration styles:
+
+| Style | Examples |
+| --- | --- |
+| Typed `X13Config` and `TramoSeatsConfig` objects | `01_basic_models.py` |
+| Direct keywords and reusable dictionaries | `03_x13_models.py`, `04_tramoseats_models.py` |
+| JSON shared with the CLI | `10_csv_workflow.py`, `configs/` |
+
+Typed objects favor discoverability, keywords favor short experiments, and
+JSON favors operational or reviewed workflows. All three use the same
+processors and return the same result types.
 
 The equivalent command-line workflow is:
 
