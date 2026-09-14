@@ -204,8 +204,17 @@ interfaces.
 
 ## Examples
 
+The [example recipe guide](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md)
+starts with reusable toy datasets and progresses through copy-ready X13,
+TRAMO/SEATS, quarterly, and multi-series calendar configurations.
+
 | Example | Subject |
 | --- | --- |
+| [basic_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/basic_models.py) | X13 and TRAMO/SEATS on the same monthly dataset |
+| [x13_recipes.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/x13_recipes.py) | three copy-ready X13 configurations |
+| [tramoseats_recipes.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/tramoseats_recipes.py) | automatic, explicit ARIMA, and calendar TRAMO/SEATS configurations |
+| [quarterly_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/quarterly_models.py) | both engines on reusable quarterly data |
+| [calendar_dataframe.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/calendar_dataframe.py) | per-target calendar selection for multiple series |
 | [automatic_arima_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/automatic_arima_example.py) | automatic model selection with both methods |
 | [explicit_arima_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/explicit_arima_example.py) | prespecified seasonal ARIMA models |
 | [quarterly_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/quarterly_example.py) | quarterly frequency inference and period-four seasonality |

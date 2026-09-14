@@ -156,6 +156,32 @@ demetrapy --data "data/monthly sales.csv" --output "results/adjusted sales.csv"
 The CLI processes one value column per invocation. Use `adjust_dataframe()`
 from Python to process multiple target columns in one call.
 
+## Toy Datasets and Recipes
+
+Deterministic synthetic datasets are included for experimentation:
+
+```python
+from demetrapy import load_monthly_retail, load_quarterly_production
+
+monthly = load_monthly_retail()
+quarterly = load_quarterly_production()
+```
+
+Run the copy-ready model recipes from the repository root:
+
+```bash
+python examples/basic_models.py
+python examples/x13_recipes.py
+python examples/tramoseats_recipes.py
+python examples/quarterly_models.py
+python examples/calendar_dataframe.py
+```
+
+Each method-specific recipe applies several configurations to the same input,
+so differences are attributable to model settings rather than different toy
+data. See [the example catalog](examples/README.md) for the dataset contents and
+the configuration covered by each script.
+
 ## Plotting
 
 Plotting support is included in the standard installation and does not change
