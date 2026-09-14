@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "demetrapy"
-version = "0.1.5"
+version = "0.1.6"
 description = "Python toolkit for seasonal adjustment with JDemetra+ X13 and TRAMO/SEATS"
 authors = [{ name = "Sermet Pekin", email = "sermet.pekin@gmail.com" }]
 readme = "README.md"
