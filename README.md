@@ -1,6 +1,10 @@
 # demetrapy
 
-[![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/demetrapy?1)](https://img.shields.io/pypi/v/demetrapy?1) 
+![t](https://img.shields.io/badge/status-maintained-yellow.svg) [![](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
+
+[![Downloads](https://static.pepy.tech/badge/demetrapy)](https://pepy.tech/project/demetrapy) [![Downloads](https://static.pepy.tech/badge/demetrapy/month)](https://pepy.tech/project/demetrapy) [![Downloads](https://pepy.tech/badge/demetrapy/week)](https://pepy.tech/project/demetrapy)
+
 
 `demetrapy` is a Python toolkit for the seasonal-adjustment procedures in
 [JDemetra+](https://github.com/jdemetra/jdemetra-core). It provides a Python

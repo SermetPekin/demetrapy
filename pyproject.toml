@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "demetrapy"
-version = "0.1.5"
+version = "0.1.6"
 description = "Python toolkit for seasonal adjustment with JDemetra+ X13 and TRAMO/SEATS"
 authors = [{ name = "Sermet Pekin", email = "sermet.pekin@gmail.com" }]
 readme = "README.md"
@@ -17,6 +17,7 @@ dependencies = [
 	"matplotlib>=3.8,<4",
 	"plotly>=6,<7",
 	"streamlit>=1.40,<2",
+	"openpyxl>=3.1.5",
 ]
 keywords = ["seasonal-adjustment", "jdemetra", "x13", "tramo-seats", "time-series"]
 classifiers = [
