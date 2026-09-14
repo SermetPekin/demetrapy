@@ -1,30 +1,12 @@
 # demetrapy
 
-[![PyPI](https://img.shields.io/pypi/v/demetrapy?1)](https://img.shields.io/pypi/v/demetrapy?1) 
-![t](https://img.shields.io/badge/status-maintained-yellow.svg) [![](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/demetrapy)](https://pypi.org/project/demetrapy/)
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
 
-[![Downloads](https://static.pepy.tech/badge/demetrapy)](https://pepy.tech/project/demetrapy) [![Downloads](https://static.pepy.tech/badge/demetrapy/month)](https://pepy.tech/project/demetrapy) [![Downloads](https://pepy.tech/badge/demetrapy/week)](https://pepy.tech/project/demetrapy)
-
-
-`demetrapy` is a Python toolkit for the seasonal-adjustment procedures in
-[JDemetra+](https://github.com/jdemetra/jdemetra-core). It provides a Python
-API for individual and pandas-based workflows, a command-line interface, and
-an interactive dashboard. Calculations use the JDemetra+ X13 and TRAMO/SEATS
-implementations through JPype; neither procedure is reimplemented in Python.
-
-The package is intended for empirical work in which adjustment specifications
-must be recorded, repeated, and applied to several series. It accepts regular
-monthly, quarterly, half-yearly, and yearly observations. Calendar effects,
-intervention variables, outliers, ARIMA specifications, forecasts, and the
-principal decomposition options can be set in code or in a JSON file.
-
-Seasonal adjustment is an inferential procedure, not merely a filter applied
-to a column of numbers. Results depend on the transformation, regression
-effects, ARIMA model, decomposition method, and span of the sample. Published
-series should therefore be accompanied by their specification and revision
-policy. `demetrapy` exposes JDemetra+ diagnostics and processing messages for
-this purpose, but it does not decide whether a specification is economically
-appropriate.
+`demetrapy` exposes JDemetra+ X13 and TRAMO/SEATS through Python, pandas, a
+command-line interface, and a Streamlit dashboard. It supports monthly through
+yearly data, calendars, regressors, outliers, ARIMA models, and forecasts.
 
 ## Installation
 
@@ -45,9 +27,7 @@ python -m pip install -e .
 The first calculation downloads the pinned `demetra-tstoolkit` 2.2.6 JAR from
 Maven Central and stores it in `~/.cache/demetrapy`. Set `DEMETRAPY_JAR` to the
 path of a local copy when automatic download is not suitable. The
-[Windows guide](https://github.com/SermetPekin/demetrapy/blob/main/WINDOWS_USAGE.md)
-covers Command Prompt, proxy-restricted, and
-offline installations.
+[Windows guide](docs/WINDOWS_USAGE.md) covers Command Prompt and offline setup.
 
 ## Python interface
 
@@ -75,12 +55,12 @@ explicit starting period:
 from demetrapy import adjust
 
 result = adjust(
-	values,
-	frequency="Quarterly",
-	start_year=2005,
-	start_period=1,
-	method="tramoseats",
-	spec="RSA4",
+    values,
+    frequency="Quarterly",
+    start_year=2005,
+    start_period=1,
+    method="tramoseats",
+    spec="RSA4",
 )
 adjusted = result.seasonally_adjusted.values
 ```
@@ -113,11 +93,11 @@ model:
 
 ```python
 detailed = adjust(
-	values,
-	frequency="Monthly",
-	start_year=2015,
-	forecast_horizon=12,
-	detailed=True,
+    values,
+    frequency="Monthly",
+    start_year=2015,
+    forecast_horizon=12,
+    detailed=True,
 )
 
 print(detailed.arima_model.notation)
@@ -150,10 +130,8 @@ demetrapy \
   --output adjusted.csv
 ```
 
-The output contains `y`, `ycal`, `sa`, `t`, `s`, and `i`, aligned with the input
-dates.
-See the [usage guide](https://github.com/SermetPekin/demetrapy/blob/main/USAGE.md)
-for the complete command-line and Python API.
+The output contains `y`, `ycal`, `sa`, `t`, `s`, and `i`. See the
+[usage guide](docs/USAGE.md) for all options.
 
 ## Specifications and regressors
 
@@ -171,16 +149,10 @@ overridden explicitly.
 | Decomposition | X11 filters and limits; SEATS approximation and boundary controls |
 | Output | forecasts, backcasts, benchmarking, diagnostics, and processing messages |
 
-UserDefined trading-day variables follow the distinction made in the
-JDemetra+ graphical interface: a calendar pool may contain several registered
-series while each target selects only the variables relevant to its own
-equation. The target observations and calendar pool may be supplied as
-separate DataFrames, provided their frequencies agree and the calendar domain
-covers the estimation sample.
+UserDefined calendar variables use a separate pool; each target selects the
+columns used by its equation.
 
-The [configuration reference](https://github.com/SermetPekin/demetrapy/blob/main/CONFIGURATION.md)
-documents processing order, valid option groups, preset behavior, and result
-semantics.
+See the [configuration reference](docs/CONFIGURATION.md) for supported values.
 
 ## Inspection
 
@@ -196,41 +168,21 @@ The local dashboard is included in the standard installation:
 demetrapy-dashboard
 ```
 
-It accepts observation, configuration, and calendar-pool files and reports
-the adjusted series together with diagnostics, model information, processing
-messages, and downloadable results. The dashboard is a convenient inspection
-tool; it uses the same calculation path as the Python and command-line
-interfaces.
-
-The **Data source** menu also includes monthly retail, quarterly production,
-and retail-with-calendars toy datasets for trying the controls without files.
+It accepts CSV and JSON files, includes built-in sample datasets, and provides
+interactive results, diagnostics, model details, and downloads.
 
 ## Examples
 
-The [example recipe guide](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md)
-starts with reusable toy datasets and progresses through copy-ready X13,
-TRAMO/SEATS, quarterly, and multi-series calendar configurations.
+See the [example guide](examples/README.md), or run every example:
 
-| Example | Subject |
-| --- | --- |
-| [run_all.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/run_all.py) | run every Python example with concise pass/fail output |
-| [01_basic_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/01_basic_models.py) | X13 and TRAMO/SEATS basics |
-| [02_detailed_results.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/02_detailed_results.py) | detailed results, forecasts, and CSV output |
-| [03_x13_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/03_x13_models.py) | copy-ready X13 configurations |
-| [04_tramoseats_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/04_tramoseats_models.py) | automatic, explicit ARIMA, and calendar configurations |
-| [05_quarterly_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/05_quarterly_models.py) | both engines on reusable quarterly data |
-| [06_calendar_variables.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py) | per-target calendar selection for multiple series |
-| [07_compare_methods.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/07_compare_methods.py) | component-level comparison metrics for both engines |
-| [08_advanced_tramoseats.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/08_advanced_tramoseats.py) | full TRAMO/SEATS options with a UserDefined calendar |
-| [dashboard files](https://github.com/SermetPekin/demetrapy/blob/main/examples/dashboard/README.md) | ready-to-upload dashboard inputs |
+```bash
+python examples/run_all.py
+```
 
 ## Reproducibility and compatibility
 
-The compact result schema is versioned, and the supported Python, Java, and
-JDemetra+ combinations are stated in the
-[compatibility policy](https://github.com/SermetPekin/demetrapy/blob/main/COMPATIBILITY.md).
-Tests use both processing engines and include synthetic seasonal and calendar
-effects with known structure. CI runs on Linux, Windows, and macOS.
+See [compatibility](docs/COMPATIBILITY.md) for supported Python, Java, and
+JDemetra+ versions. CI tests both engines on Linux, Windows, and macOS.
 
 ```bash
 python -m unittest discover -s tests

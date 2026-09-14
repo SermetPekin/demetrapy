@@ -32,7 +32,7 @@ classifiers = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/SermetPekin/demetrapy/blob/main/USAGE.md"
+Documentation = "https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md"
 Issues = "https://github.com/SermetPekin/demetrapy/issues"
 Repository = "https://github.com/SermetPekin/demetrapy"
 

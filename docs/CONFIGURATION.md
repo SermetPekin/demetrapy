@@ -139,8 +139,8 @@ TRAMO automodel options:
 
 `pcr`, `ub1`, `ub2`, `cancel`, `tsig`, `pc`, and `ami_compare`.
 
-See [03_x13_models.py](examples/03_x13_models.py) and
-[04_tramoseats_models.py](examples/04_tramoseats_models.py)
+See [03_x13_models.py](../examples/03_x13_models.py) and
+[04_tramoseats_models.py](../examples/04_tramoseats_models.py)
 for complete executable configurations.
 
 ### Estimation
@@ -270,10 +270,10 @@ for example, `result.for_series(target).arima_model` returns the fitted model.
 
 ## Complete Examples
 
-- [Basic X13 and TRAMO/SEATS](examples/01_basic_models.py)
-- [X13 configurations](examples/03_x13_models.py)
-- [TRAMO/SEATS configurations](examples/04_tramoseats_models.py)
-- [Quarterly models](examples/05_quarterly_models.py)
-- [UserDefined calendars](examples/06_calendar_variables.py)
-- [Method comparison](examples/07_compare_methods.py)
-- [Advanced TRAMO/SEATS](examples/08_advanced_tramoseats.py)
+- [Basic X13 and TRAMO/SEATS](../examples/01_basic_models.py)
+- [X13 configurations](../examples/03_x13_models.py)
+- [TRAMO/SEATS configurations](../examples/04_tramoseats_models.py)
+- [Quarterly models](../examples/05_quarterly_models.py)
+- [UserDefined calendars](../examples/06_calendar_variables.py)
+- [Method comparison](../examples/07_compare_methods.py)
+- [Advanced TRAMO/SEATS](../examples/08_advanced_tramoseats.py)
