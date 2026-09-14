@@ -2,14 +2,15 @@
 
 For a consolidated description of processing stages, compatible configuration
 groups, defaults, and every supported ARIMA/X11/SEATS option, see the
-[configuration reference](CONFIGURATION.md).
+[configuration reference](https://github.com/SermetPekin/demetrapy/blob/main/docs/CONFIGURATION.md).
 
 ## Installation
 
 `demetrapy` requires Python 3.9+ and Java 8+.
 
 For Command Prompt, proxy-restricted networks, and manual JAR installation, see
-the [Windows usage guide](WINDOWS_USAGE.md).
+the
+[Windows usage guide](https://github.com/SermetPekin/demetrapy/blob/main/docs/WINDOWS_USAGE.md).
 
 ```bash
 python -m venv .venv
@@ -178,12 +179,14 @@ python examples/05_quarterly_models.py
 python examples/06_calendar_variables.py
 python examples/07_compare_methods.py
 python examples/08_advanced_tramoseats.py
+python examples/09_bulk_processing_audit.py
 ```
 
 Each method-specific recipe applies several configurations to the same input,
 so differences are attributable to model settings rather than different toy
-data. See [the example catalog](../examples/README.md) for the dataset contents and
-the configuration covered by each script.
+data. See
+[the example catalog](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md)
+for the dataset contents and the configuration covered by each script.
 
 ## Plotting
 
@@ -234,7 +237,8 @@ hover values, zooming, panning, and legend toggles. Processing still uses the
 same in-memory JDemetra+ engine and does not create workspace XML.
 
 Ready-to-upload files and the exact selections are provided in the
-[dashboard example directory](../examples/dashboard/README.md). The fixture set
+[dashboard example directory](https://github.com/SermetPekin/demetrapy/blob/main/examples/dashboard/README.md).
+The fixture set
 includes a multi-series CSV, a wider calendar pool, and separate X13 and
 TRAMO/SEATS configurations with forecasts.
 
@@ -279,7 +283,8 @@ objects. Every key is optional.
 | `benchmarking` | `false` | Enable JDemetra+ benchmarking |
 
 The flat X11 options apply only to `method: "x13"`. See
-[`examples/configs/tramoseats_full.json`](../examples/configs/tramoseats_full.json) for a complete
+[`examples/configs/tramoseats_full.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/tramoseats_full.json)
+for a complete
 TRAMO/SEATS example with calendar and regression variables.
 
 ### Preprocessing and SEATS
@@ -320,7 +325,8 @@ seven fields when the model must be fully reproducible independent of preset.
 
 The same object can be passed as `preprocessing=` to `adjust()` or
 `adjust_dataframe()`. See
-[`examples/configs/x13_explicit_arima.json`](../examples/configs/x13_explicit_arima.json) for a runnable CLI
+[`examples/configs/x13_explicit_arima.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/x13_explicit_arima.json)
+for a runnable CLI
 configuration. The dashboard exposes the same choice under **ARIMA model**.
 
 Runnable Python examples are available for both modes:
@@ -331,8 +337,9 @@ python examples/04_tramoseats_models.py
 ```
 
 For CLI configuration, use
-[`examples/configs/x13_automatic_arima.json`](../examples/configs/x13_automatic_arima.json)
-or [`examples/configs/x13_explicit_arima.json`](../examples/configs/x13_explicit_arima.json).
+[`examples/configs/x13_automatic_arima.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/x13_automatic_arima.json)
+or
+[`examples/configs/x13_explicit_arima.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/x13_explicit_arima.json).
 
 Detailed results report the fitted model, including the orders selected by
 automodel:
@@ -351,10 +358,10 @@ print(result.arima_model.automatic)
 For a DataFrame result, use `result.for_series(target).arima_model`.
 
 The complete CLI configuration in
-[`examples/configs/tramoseats_full.json`](../examples/configs/tramoseats_full.json)
+[`examples/configs/tramoseats_full.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/tramoseats_full.json)
 covers explicit ARIMA fields, TRAMO transform and estimation options, outlier
 detection, and SEATS controls. UserDefined calendar handling is demonstrated in
-[`examples/06_calendar_variables.py`](../examples/06_calendar_variables.py).
+[`examples/06_calendar_variables.py`](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py).
 
 `outlier_detection.types` accepts `AO`, `LS`, `TC`, and `SO`, with optional
 `critical_value` and `tc_rate`. For TRAMO/SEATS, `seats` accepts decomposition
@@ -538,7 +545,7 @@ result = adjust(
 
 ### User-Defined Calendar DataFrame
 
-[The DataFrame variable-pool example](../examples/06_calendar_variables.py)
+[The DataFrame variable-pool example](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py)
 keeps target series and precomputed calendar weights in separate DataFrames.
 The calendar pool may begin before and end after the targets. A dictionary maps
 each target column to the pool columns it uses:

@@ -27,7 +27,8 @@ python -m pip install -e .
 The first calculation downloads the pinned `demetra-tstoolkit` 2.2.6 JAR from
 Maven Central and stores it in `~/.cache/demetrapy`. Set `DEMETRAPY_JAR` to the
 path of a local copy when automatic download is not suitable. The
-[Windows guide](docs/WINDOWS_USAGE.md) covers Command Prompt and offline setup.
+[Windows guide](https://github.com/SermetPekin/demetrapy/blob/main/docs/WINDOWS_USAGE.md)
+covers Command Prompt and offline setup.
 
 ## Python interface
 
@@ -131,7 +132,8 @@ demetrapy \
 ```
 
 The output contains `y`, `ycal`, `sa`, `t`, `s`, and `i`. See the
-[usage guide](docs/USAGE.md) for all options.
+[usage guide](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md)
+for all options.
 
 ## Specifications and regressors
 
@@ -152,7 +154,9 @@ overridden explicitly.
 UserDefined calendar variables use a separate pool; each target selects the
 columns used by its equation.
 
-See the [configuration reference](docs/CONFIGURATION.md) for supported values.
+See the
+[configuration reference](https://github.com/SermetPekin/demetrapy/blob/main/docs/CONFIGURATION.md)
+for supported values.
 
 ## Inspection
 
@@ -173,7 +177,9 @@ interactive results, diagnostics, model details, and downloads.
 
 ## Examples
 
-See the [example guide](examples/README.md), or run every example:
+See the
+[example guide](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md),
+or run every example:
 
 ```bash
 python examples/run_all.py
@@ -181,8 +187,10 @@ python examples/run_all.py
 
 ## Reproducibility and compatibility
 
-See [compatibility](docs/COMPATIBILITY.md) for supported Python, Java, and
-JDemetra+ versions. CI tests both engines on Linux, Windows, and macOS.
+See
+[compatibility](https://github.com/SermetPekin/demetrapy/blob/main/docs/COMPATIBILITY.md)
+for supported Python, Java, and JDemetra+ versions. CI tests both engines on
+Linux, Windows, and macOS.
 
 ```bash
 python -m unittest discover -s tests

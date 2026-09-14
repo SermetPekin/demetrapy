@@ -50,11 +50,18 @@ Run them in order or copy the relevant configuration:
 | `06_calendar_variables.py` | multiple targets with different calendar variables |
 | `07_compare_methods.py` | component-level comparison metrics for both engines |
 | `08_advanced_tramoseats.py` | full TRAMO/SEATS options with a UserDefined calendar |
+| `09_bulk_processing_audit.py` | fault-tolerant company batch with success/failure audit files |
 
 ```bash
 python examples/01_basic_models.py
 python examples/03_x13_models.py
+python examples/09_bulk_processing_audit.py
 ```
+
+The bulk-processing example continues after an item fails. It writes a detailed
+log with tracebacks, a CSV report with one row per job, and an adjusted CSV for
+each successful job under `bulk_run_output/`. One invalid job is included to
+demonstrate failure reporting.
 
 The model dictionaries are examples of API syntax, not universal statistical
 recommendations. Check diagnostics for real data.
