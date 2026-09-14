@@ -36,45 +36,39 @@ python examples/run_all.py
 The runner prints one status line per example and uses a temporary output
 directory. Pass `--show-output` to display each example's results.
 
-## Start Here
+## Python Examples
+
+Run them in order or copy the relevant configuration:
+
+| File | Purpose |
+| --- | --- |
+| `01_basic_models.py` | X13 and TRAMO/SEATS basics |
+| `02_detailed_results.py` | components, forecasts, diagnostics, and CSV output |
+| `03_x13_models.py` | X11 filters, calendars, and outlier settings |
+| `04_tramoseats_models.py` | automatic and explicit ARIMA, calendars, and SEATS settings |
+| `05_quarterly_models.py` | quarterly processing with both engines |
+| `06_calendar_variables.py` | multiple targets with different calendar variables |
+| `07_compare_methods.py` | component-level comparison metrics for both engines |
+| `08_advanced_tramoseats.py` | full TRAMO/SEATS options with a UserDefined calendar |
 
 ```bash
-python examples/basic_models.py
+python examples/01_basic_models.py
+python examples/03_x13_models.py
 ```
 
-This runs X13 and TRAMO/SEATS on the same `sales` series and shows historical
-components and seasonally adjusted forecasts.
+The model dictionaries are examples of API syntax, not universal statistical
+recommendations. Check diagnostics for real data.
 
-## Configuration Recipes
+## CLI Configurations
 
-```bash
-python examples/x13_recipes.py
-python examples/tramoseats_recipes.py
-```
+JSON examples are under `examples/configs/`:
 
-The configuration dictionaries at the top of each file are designed to be
-copied individually. They cover:
-
-- X13 RSA4 defaults
-- X13 multiplicative decomposition and explicit X11 filters
-- X13 working-day regressors and automatic outlier detection
-- TRAMO/SEATS automatic model selection
-- TRAMO/SEATS with an explicit airline ARIMA model
-- TRAMO/SEATS trading days, outliers, and SEATS controls
-
-These configurations demonstrate API syntax. Model selection should still be
-based on diagnostics and the properties of the user's series.
-
-## Other Frequencies and Multiple Series
-
-```bash
-python examples/quarterly_models.py
-python examples/calendar_dataframe.py
-```
-
-The quarterly example compares both engines on one production series. The
-calendar example adjusts `sales` and `orders` together while selecting different
-variables from the same wider calendar pool.
+| File | Purpose |
+| --- | --- |
+| `x13_basic.json` | basic X13 and X11 settings |
+| `x13_automatic_arima.json` | X13 automatic model selection |
+| `x13_explicit_arima.json` | X13 explicit airline model |
+| `tramoseats_full.json` | extended TRAMO/SEATS configuration |
 
 ## Result Access
 

@@ -77,7 +77,7 @@ demetrapy input.csv
 Use `--config` or `-c` to provide adjustment settings:
 
 ```bash
-demetrapy input.csv --config examples/config.json --output adjusted.csv
+demetrapy input.csv --config examples/configs/x13_basic.json --output adjusted.csv
 ```
 
 The fully named equivalent is:
@@ -85,7 +85,7 @@ The fully named equivalent is:
 ```bash
 demetrapy \
   --data input.csv \
-  --config examples/config.json \
+  --config examples/configs/x13_basic.json \
   --output adjusted.csv
 ```
 
@@ -135,7 +135,7 @@ Override only the method and preset from an existing configuration:
 ```bash
 demetrapy \
   --data input.csv \
-  --config examples/config.json \
+  --config examples/configs/x13_basic.json \
   --method tramoseats \
   --spec RSA5 \
   --output adjusted.csv
@@ -144,7 +144,7 @@ demetrapy \
 Write CSV to standard output for use in a pipeline:
 
 ```bash
-demetrapy --data input.csv --config examples/config.json
+demetrapy --data input.csv --config examples/configs/x13_basic.json
 ```
 
 Paths containing spaces should be quoted:
@@ -170,11 +170,14 @@ quarterly = load_quarterly_production()
 Run the copy-ready model recipes from the repository root:
 
 ```bash
-python examples/basic_models.py
-python examples/x13_recipes.py
-python examples/tramoseats_recipes.py
-python examples/quarterly_models.py
-python examples/calendar_dataframe.py
+python examples/01_basic_models.py
+python examples/02_detailed_results.py
+python examples/03_x13_models.py
+python examples/04_tramoseats_models.py
+python examples/05_quarterly_models.py
+python examples/06_calendar_variables.py
+python examples/07_compare_methods.py
+python examples/08_advanced_tramoseats.py
 ```
 
 Each method-specific recipe applies several configurations to the same input,
@@ -193,7 +196,7 @@ seasonal, irregular, configured forecasts, and active effects:
 ```bash
 demetrapy \
   --data input.csv \
-  --config examples/config.json \
+  --config examples/configs/x13_basic.json \
   --output adjusted.csv \
   --plot-output adjustment.png
 ```
@@ -276,7 +279,7 @@ objects. Every key is optional.
 | `benchmarking` | `false` | Enable JDemetra+ benchmarking |
 
 The flat X11 options apply only to `method: "x13"`. See
-[`examples/full_config.json`](examples/full_config.json) for a complete
+[`examples/configs/tramoseats_full.json`](examples/configs/tramoseats_full.json) for a complete
 TRAMO/SEATS example with calendar and regression variables.
 
 ### Preprocessing and SEATS
@@ -317,19 +320,19 @@ seven fields when the model must be fully reproducible independent of preset.
 
 The same object can be passed as `preprocessing=` to `adjust()` or
 `adjust_dataframe()`. See
-[`examples/arima_config.json`](examples/arima_config.json) for a runnable CLI
+[`examples/configs/x13_explicit_arima.json`](examples/configs/x13_explicit_arima.json) for a runnable CLI
 configuration. The dashboard exposes the same choice under **ARIMA model**.
 
 Runnable Python examples are available for both modes:
 
 ```bash
-python examples/automatic_arima_example.py
-python examples/explicit_arima_example.py
+python examples/03_x13_models.py
+python examples/04_tramoseats_models.py
 ```
 
 For CLI configuration, use
-[`examples/automatic_arima_config.json`](examples/automatic_arima_config.json)
-or [`examples/arima_config.json`](examples/arima_config.json).
+[`examples/configs/x13_automatic_arima.json`](examples/configs/x13_automatic_arima.json)
+or [`examples/configs/x13_explicit_arima.json`](examples/configs/x13_explicit_arima.json).
 
 Detailed results report the fitted model, including the orders selected by
 automodel:
@@ -347,18 +350,11 @@ print(result.arima_model.automatic)
 
 For a DataFrame result, use `result.for_series(target).arima_model`.
 
-For a complete TRAMO/SEATS example with all explicit ARIMA fields, every
-supported TRAMO transform and estimation option, a separate UserDefined
-calendar pool, outlier detection, and all SEATS controls, run:
-
-```bash
-python examples/full_tramoseats_user_calendar_example.py
-python examples/full_tramoseats_user_calendar_example.py --auto-model
-```
-
-The default run includes every explicit ARIMA order field. `--auto-model`
-replaces those orders with every supported TRAMO automodel control; the two
-modes are intentionally mutually exclusive.
+The complete CLI configuration in
+[`examples/configs/tramoseats_full.json`](examples/configs/tramoseats_full.json)
+covers explicit ARIMA fields, TRAMO transform and estimation options, outlier
+detection, and SEATS controls. UserDefined calendar handling is demonstrated in
+[`examples/06_calendar_variables.py`](examples/06_calendar_variables.py).
 
 `outlier_detection.types` accepts `AO`, `LS`, `TC`, and `SO`, with optional
 `critical_value` and `tc_rate`. For TRAMO/SEATS, `seats` accepts decomposition
@@ -542,7 +538,7 @@ result = adjust(
 
 ### User-Defined Calendar DataFrame
 
-[The DataFrame variable-pool example](examples/dataframe_user_variables_example.py)
+[The DataFrame variable-pool example](examples/06_calendar_variables.py)
 keeps target series and precomputed calendar weights in separate DataFrames.
 The calendar pool may begin before and end after the targets. A dictionary maps
 each target column to the pool columns it uses:

@@ -112,14 +112,14 @@ set DEMETRAPY_JAR=
 ## Run an Adjustment
 
 ```bat
-demetrapy .\input.csv --config .\examples\config.json --output .\adjusted.csv
+demetrapy .\input.csv --config .\examples\configs\x13_basic.json --output .\adjusted.csv
 ```
 
 For the advanced TRAMO/SEATS configuration, the input CSV must include the
 `promotion` column referenced by the example:
 
 ```bat
-demetrapy .\input.csv --config .\examples\full_config.json --output .\adjusted.csv
+demetrapy .\input.csv --config .\examples\configs\tramoseats_full.json --output .\adjusted.csv
 ```
 
 The Python API works identically on Windows:

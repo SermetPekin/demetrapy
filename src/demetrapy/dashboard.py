@@ -9,7 +9,20 @@ from typing import Any
 
 from demetrapy.config import AdjustmentConfig
 from demetrapy.dataframe import DataFrameAdjustmentResult, adjust_dataframe
+from demetrapy.datasets import (
+    load_monthly_retail,
+    load_quarterly_production,
+    load_retail_with_calendars,
+)
 from demetrapy.interactive import plot_adjustment_interactive
+
+
+_DATA_SOURCES = (
+    "Upload CSV",
+    "Monthly retail",
+    "Quarterly production",
+    "Retail with calendars",
+)
 
 
 def main() -> None:
@@ -107,16 +120,30 @@ def main() -> None:
 
     with st.sidebar:
         st.subheader("Inputs")
-        data_upload = st.file_uploader("Series CSV (required)", type="csv")
+        data_source = st.selectbox("Data source", _DATA_SOURCES)
+        data_upload = (
+            st.file_uploader("Series CSV", type="csv")
+            if data_source == "Upload CSV"
+            else None
+        )
         config_upload = st.file_uploader("Configuration JSON (optional)", type="json")
-        calendar_upload = st.file_uploader("Calendar pool CSV (optional)", type="csv")
+        calendar_upload = (
+            st.file_uploader("Calendar pool CSV (optional)", type="csv")
+            if data_source == "Upload CSV"
+            else None
+        )
 
-    if data_upload is None:
+    if data_source == "Upload CSV" and data_upload is None:
         st.info("Upload a series CSV to begin.")
         return
 
     try:
-        raw_data = pd.read_csv(data_upload)
+        if data_source == "Upload CSV":
+            raw_data = pd.read_csv(data_upload)
+            calendar_raw = pd.read_csv(calendar_upload) if calendar_upload else None
+            sample_mapping: dict[Any, list[Any]] = {}
+        else:
+            raw_data, calendar_raw, sample_mapping = _sample_inputs(data_source)
         config = _uploaded_config(config_upload)
     except (OSError, ValueError, json.JSONDecodeError) as error:
         st.error(str(error))
@@ -210,15 +237,9 @@ def main() -> None:
                 value=bool(configured_arima.get("mean", False)),
             )
 
-    calendar_raw = None
     calendar_date_column = None
     calendar_mapping: dict[Any, list[Any]] = {}
-    if calendar_upload is not None:
-        try:
-            calendar_raw = pd.read_csv(calendar_upload)
-        except (OSError, ValueError) as error:
-            st.error(str(error))
-            return
+    if calendar_raw is not None:
         with st.sidebar:
             st.subheader("UserDefined calendar")
             calendar_date_column = st.selectbox(
@@ -229,7 +250,13 @@ def main() -> None:
             ]
             for target in targets:
                 calendar_mapping[target] = st.multiselect(
-                    f"Calendar columns for {target}", calendar_columns
+                    f"Calendar columns for {target}",
+                    calendar_columns,
+                    default=[
+                        column
+                        for column in sample_mapping.get(target, ())
+                        if column in calendar_columns
+                    ],
                 )
 
     with st.sidebar:
@@ -241,47 +268,59 @@ def main() -> None:
         if not targets:
             st.error("Select at least one target column.")
         else:
-            try:
-                frame = _indexed_frame(raw_data, date_column, targets, pd)
-                calendar_pool = (
-                    _indexed_frame(
-                        calendar_raw,
-                        calendar_date_column,
-                        [
-                            column
-                            for column in calendar_raw.columns
-                            if column != calendar_date_column
-                        ],
-                        pd,
+            with st.status(
+                "Recalculating adjustment...", expanded=False
+            ) as calculation_status:
+                try:
+                    frame = _indexed_frame(raw_data, date_column, targets, pd)
+                    calendar_pool = (
+                        _indexed_frame(
+                            calendar_raw,
+                            calendar_date_column,
+                            [
+                                column
+                                for column in calendar_raw.columns
+                                if column != calendar_date_column
+                            ],
+                            pd,
+                        )
+                        if calendar_raw is not None
+                        and calendar_date_column is not None
+                        else None
                     )
-                    if calendar_raw is not None and calendar_date_column is not None
-                    else None
-                )
-                ordinary_values = {
-                    column: raw_data[column].astype(float).tolist()
-                    for column in config.user_variable_columns()
-                }
-                options = config.engine_options(ordinary_values)
-                for key in ("frequency", "method", "spec"):
-                    options.pop(key, None)
-                options["preprocessing"] = _model_preprocessing(
-                    options.get("preprocessing"),
-                    arima_mode,
-                    explicit_arima,
-                )
-                result = adjust_dataframe(
-                    frame,
-                    calendar_pool=calendar_pool,
-                    user_defined_calendars=calendar_mapping,
-                    method=method,
-                    spec=specification,
-                    detailed=True,
-                    **options,
-                )
-                st.session_state["demetrapy_result"] = result
-                st.session_state["demetrapy_targets"] = list(targets)
-            except Exception as error:
-                st.error(str(error))
+                    ordinary_values = {
+                        column: raw_data[column].astype(float).tolist()
+                        for column in config.user_variable_columns()
+                    }
+                    options = config.engine_options(ordinary_values)
+                    for key in ("frequency", "method", "spec"):
+                        options.pop(key, None)
+                    options["preprocessing"] = _model_preprocessing(
+                        options.get("preprocessing"),
+                        arima_mode,
+                        explicit_arima,
+                    )
+                    result = adjust_dataframe(
+                        frame,
+                        calendar_pool=calendar_pool,
+                        user_defined_calendars=calendar_mapping,
+                        method=method,
+                        spec=specification,
+                        detailed=True,
+                        **options,
+                    )
+                    st.session_state["demetrapy_result"] = result
+                    st.session_state["demetrapy_targets"] = list(targets)
+                    run_number = st.session_state.get("demetrapy_run_number", 0) + 1
+                    st.session_state["demetrapy_run_number"] = run_number
+                    calculation_status.update(
+                        label=f"Recalculated · run {run_number}", state="complete"
+                    )
+                except Exception as error:
+                    calculation_status.update(
+                        label="Recalculation failed", state="error"
+                    )
+                    st.error(str(error))
 
     result = st.session_state.get("demetrapy_result")
     result_targets = st.session_state.get("demetrapy_targets", [])
@@ -383,6 +422,26 @@ def _uploaded_config(upload: Any | None) -> AdjustmentConfig:
         return AdjustmentConfig(**payload)
     except TypeError as error:
         raise ValueError(f"invalid configuration: {error}") from error
+
+
+def _sample_inputs(
+    name: str,
+) -> tuple[Any, Any | None, dict[Any, list[Any]]]:
+    if name == "Monthly retail":
+        return load_monthly_retail().reset_index(), None, {}
+    if name == "Quarterly production":
+        return load_quarterly_production().reset_index(), None, {}
+    if name == "Retail with calendars":
+        dataset = load_retail_with_calendars()
+        return (
+            dataset.observations.reset_index(),
+            dataset.calendar_pool.reset_index(),
+            {
+                target: list(columns)
+                for target, columns in dataset.selections.items()
+            },
+        )
+    raise ValueError(f"unknown sample dataset: {name}")
 
 
 def _indexed_frame(raw: Any, date_column: Any, value_columns: list[Any], pd: Any) -> Any:

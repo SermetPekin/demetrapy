@@ -146,7 +146,7 @@ A JSON file records a fuller specification:
 ```bash
 demetrapy \
   --data input.csv \
-  --config examples/full_config.json \
+	--config examples/configs/tramoseats_full.json \
   --output adjusted.csv
 ```
 
@@ -202,6 +202,9 @@ messages, and downloadable results. The dashboard is a convenient inspection
 tool; it uses the same calculation path as the Python and command-line
 interfaces.
 
+The **Data source** menu also includes monthly retail, quarterly production,
+and retail-with-calendars toy datasets for trying the controls without files.
+
 ## Examples
 
 The [example recipe guide](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md)
@@ -210,18 +213,15 @@ TRAMO/SEATS, quarterly, and multi-series calendar configurations.
 
 | Example | Subject |
 | --- | --- |
-| [basic_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/basic_models.py) | X13 and TRAMO/SEATS on the same monthly dataset |
-| [x13_recipes.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/x13_recipes.py) | three copy-ready X13 configurations |
-| [tramoseats_recipes.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/tramoseats_recipes.py) | automatic, explicit ARIMA, and calendar TRAMO/SEATS configurations |
-| [quarterly_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/quarterly_models.py) | both engines on reusable quarterly data |
-| [calendar_dataframe.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/calendar_dataframe.py) | per-target calendar selection for multiple series |
-| [automatic_arima_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/automatic_arima_example.py) | automatic model selection with both methods |
-| [explicit_arima_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/explicit_arima_example.py) | prespecified seasonal ARIMA models |
-| [quarterly_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/quarterly_example.py) | quarterly frequency inference and period-four seasonality |
-| [compare_methods.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/compare_methods.py) | component-wise X13 and TRAMO/SEATS comparison |
-| [dataframe_user_variables_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/dataframe_user_variables_example.py) | multiple targets and a separate calendar pool |
-| [full_tramoseats_user_calendar_example.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/full_tramoseats_user_calendar_example.py) | detailed TRAMO/SEATS specification with UserDefined trading days |
-| [RETAIL_CASE_STUDY.md](https://github.com/SermetPekin/demetrapy/blob/main/examples/RETAIL_CASE_STUDY.md) | reproducible multi-series case study |
+| [run_all.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/run_all.py) | run every Python example with concise pass/fail output |
+| [01_basic_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/01_basic_models.py) | X13 and TRAMO/SEATS basics |
+| [02_detailed_results.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/02_detailed_results.py) | detailed results, forecasts, and CSV output |
+| [03_x13_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/03_x13_models.py) | copy-ready X13 configurations |
+| [04_tramoseats_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/04_tramoseats_models.py) | automatic, explicit ARIMA, and calendar configurations |
+| [05_quarterly_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/05_quarterly_models.py) | both engines on reusable quarterly data |
+| [06_calendar_variables.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py) | per-target calendar selection for multiple series |
+| [07_compare_methods.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/07_compare_methods.py) | component-level comparison metrics for both engines |
+| [08_advanced_tramoseats.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/08_advanced_tramoseats.py) | full TRAMO/SEATS options with a UserDefined calendar |
 | [dashboard files](https://github.com/SermetPekin/demetrapy/blob/main/examples/dashboard/README.md) | ready-to-upload dashboard inputs |
 
 ## Reproducibility and compatibility

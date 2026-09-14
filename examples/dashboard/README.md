@@ -6,6 +6,10 @@ Launch the dashboard from the repository root:
 demetrapy-dashboard
 ```
 
+Select **Monthly retail**, **Quarterly production**, or **Retail with
+calendars** under **Data source** to start without uploading files. The calendar
+sample preselects its per-target calendar variables.
+
 Use these files in the sidebar:
 
 | Dashboard input | Example file |

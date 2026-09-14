@@ -8,6 +8,7 @@ from demetrapy.dashboard import (
     _diagnostics_frame,
     _indexed_frame,
     _model_preprocessing,
+    _sample_inputs,
     _uploaded_config,
 )
 
@@ -21,6 +22,35 @@ class Upload:
 
 
 class DashboardHelperTest(unittest.TestCase):
+    def test_loads_monthly_and_quarterly_samples(self) -> None:
+        monthly, monthly_calendar, monthly_mapping = _sample_inputs(
+            "Monthly retail"
+        )
+        quarterly, quarterly_calendar, quarterly_mapping = _sample_inputs(
+            "Quarterly production"
+        )
+
+        self.assertEqual(list(monthly.columns), ["date", "sales", "orders"])
+        self.assertIsNone(monthly_calendar)
+        self.assertEqual(monthly_mapping, {})
+        self.assertEqual(list(quarterly.columns), ["quarter", "production"])
+        self.assertIsNone(quarterly_calendar)
+        self.assertEqual(quarterly_mapping, {})
+
+    def test_loads_calendar_sample_with_default_selections(self) -> None:
+        observations, calendar_pool, mapping = _sample_inputs(
+            "Retail with calendars"
+        )
+
+        self.assertEqual(list(observations.columns), ["date", "sales", "orders"])
+        self.assertIsNotNone(calendar_pool)
+        self.assertEqual(mapping["sales"], ["retail_days"])
+        self.assertEqual(mapping["orders"], ["retail_days", "delivery_days"])
+
+    def test_rejects_unknown_sample(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unknown sample dataset"):
+            _sample_inputs("missing")
+
     def test_loads_uploaded_configuration(self) -> None:
         upload = Upload(json.dumps({"method": "tramoseats", "spec": "RSAfull"}).encode())
 
