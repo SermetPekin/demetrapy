@@ -48,13 +48,19 @@ TRAMOSEATS_CONFIGURATIONS = {
 }
 
 
-data = load_monthly_retail()[["sales"]]
+def main() -> None:
+    data = load_monthly_retail()[["sales"]]
 
-for name, configuration in TRAMOSEATS_CONFIGURATIONS.items():
-    result = adjust_dataframe(data, detailed=True, **configuration)
-    sales = result.for_series("sales")
-    model = sales.arima_model
-    print(f"\n{name}")
-    print("Model:", model.notation if model else "unavailable")
-    print("Last adjusted values:", result.seasonally_adjusted["sales"].tail(3).round(2).tolist())
-    print("Forecast:", sales.to_forecast_dict()["sa_f"][:3])
+    for name, configuration in TRAMOSEATS_CONFIGURATIONS.items():
+        result = adjust_dataframe(data, detailed=True, **configuration)
+        sales = result.for_series("sales")
+        model = sales.arima_model
+        adjusted = result.seasonally_adjusted["sales"].tail(3).round(2).tolist()
+        print(f"\n{name}")
+        print("Model:", model.notation if model else "unavailable")
+        print("Last adjusted values:", adjusted)
+        print("Forecast:", sales.to_forecast_dict()["sa_f"][:3])
+
+
+if __name__ == "__main__":
+    main()
