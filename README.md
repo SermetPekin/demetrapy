@@ -65,7 +65,7 @@ data = pd.DataFrame(
 )
 
 result = adjust_dataframe(data, method="x13", spec="RSA4")
-adjusted = result[("production", "sa")]
+adjusted = result.seasonally_adjusted["production"]
 ```
 
 The lower-level `adjust()` function accepts one regular sequence and an
@@ -82,23 +82,34 @@ result = adjust(
 	method="tramoseats",
 	spec="RSA4",
 )
-adjusted = result["sa"]
+adjusted = result.seasonally_adjusted.values
 ```
 
-By default, both functions return the five compact components used in routine
-work:
+Both functions always return a stable result object. Their `components`
+attribute exposes six named series used in routine work:
 
-| Name | Series |
-| --- | --- |
-| `y` | observed series |
-| `sa` | seasonally adjusted series |
-| `t` | trend-cycle |
-| `s` | seasonal component |
-| `i` | irregular component |
+| Attribute | Compact alias | Series |
+| --- | --- | --- |
+| `observed` | `y` | observed series |
+| `calendar_adjusted` | `ycal` | calendar-adjusted series |
+| `seasonally_adjusted` | `sa` | seasonally adjusted series |
+| `trend` | `t` | trend-cycle |
+| `seasonal` | `s` | seasonal component |
+| `irregular` | `i` | irregular component |
 
-Set `detailed=True` when the calculation must retain the full JDemetra+ result
-dictionary, diagnostics, processing messages, forecasts, backcasts, and fitted
-ARIMA model:
+Use `to_compact_dict()` or `to_compact_frame()` when the short aliases are
+needed. Forecasts preserve their own future domain under `result.forecasts`;
+`to_forecast_dict()` provides `y_f`, `ycal_f`, `sa_f`, `t_f`, `s_f`, and
+`i_f` when a forecast horizon is active:
+
+```python
+seasonal_forecast = result.forecasts.seasonal
+forecast_values = result.to_forecast_dict()
+```
+
+Set `detailed=True` to additionally populate the full JDemetra+ result
+dictionary, diagnostics, processing messages, backcasts, and fitted ARIMA
+model:
 
 ```python
 detailed = adjust(
@@ -139,7 +150,8 @@ demetrapy \
   --output adjusted.csv
 ```
 
-The output contains `y`, `sa`, `t`, `s`, and `i`, aligned with the input dates.
+The output contains `y`, `ycal`, `sa`, `t`, `s`, and `i`, aligned with the input
+dates.
 See the [usage guide](https://github.com/SermetPekin/demetrapy/blob/main/USAGE.md)
 for the complete command-line and Python API.
 

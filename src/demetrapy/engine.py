@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import keyword
 import os
 import urllib.request
@@ -15,8 +15,9 @@ JAR_URL = (
     "https://repo1.maven.org/maven2/eu/europa/ec/joinup/sat/"
     f"demetra-tstoolkit/{JDEMETRA_VERSION}/demetra-tstoolkit-{JDEMETRA_VERSION}.jar"
 )
-RESULT_SCHEMA_VERSION = 1
-COMPACT_COMPONENTS = ("y", "sa", "t", "s", "i")
+RESULT_SCHEMA_VERSION = 2
+COMPACT_COMPONENTS = ("y", "ycal", "sa", "t", "s", "i")
+FORECAST_COMPONENTS = ("y_f", "ycal_f", "sa_f", "t_f", "s_f", "i_f")
 _PERIODS_PER_YEAR = {"Monthly": 12, "Quarterly": 4, "HalfYearly": 2, "Yearly": 1}
 
 
@@ -26,6 +27,67 @@ class OutputSeries:
     frequency: str
     start_year: int
     start_period: int
+
+
+@dataclass(frozen=True)
+class AdjustmentComponents:
+    observed: OutputSeries
+    calendar_adjusted: OutputSeries
+    seasonally_adjusted: OutputSeries
+    trend: OutputSeries
+    seasonal: OutputSeries
+    irregular: OutputSeries
+
+    def __getitem__(self, name: str) -> OutputSeries:
+        aliases = {
+            "y": "observed",
+            "ycal": "calendar_adjusted",
+            "sa": "seasonally_adjusted",
+            "t": "trend",
+            "s": "seasonal",
+            "i": "irregular",
+        }
+        attribute = aliases.get(name, name)
+        if attribute not in self.__dataclass_fields__:
+            raise KeyError(name)
+        return getattr(self, attribute)
+
+    def to_compact_dict(self) -> dict[str, list[float]]:
+        return {
+            name: list(self[name].values)
+            for name in COMPACT_COMPONENTS
+        }
+
+
+@dataclass(frozen=True)
+class AdjustmentForecasts:
+    observed: OutputSeries | None = None
+    calendar_adjusted: OutputSeries | None = None
+    seasonally_adjusted: OutputSeries | None = None
+    trend: OutputSeries | None = None
+    seasonal: OutputSeries | None = None
+    irregular: OutputSeries | None = None
+
+    def __getitem__(self, name: str) -> OutputSeries | None:
+        aliases = {
+            "y_f": "observed",
+            "ycal_f": "calendar_adjusted",
+            "sa_f": "seasonally_adjusted",
+            "t_f": "trend",
+            "s_f": "seasonal",
+            "i_f": "irregular",
+        }
+        attribute = aliases.get(name, name)
+        if attribute not in self.__dataclass_fields__:
+            raise KeyError(name)
+        return getattr(self, attribute)
+
+    def to_compact_dict(self) -> dict[str, list[float]]:
+        return {
+            name: list(output.values)
+            for name in FORECAST_COMPONENTS
+            if (output := self[name]) is not None
+        }
 
 
 @dataclass(frozen=True)
@@ -58,12 +120,44 @@ class ArimaModel:
 
 @dataclass(frozen=True)
 class AdjustmentResult:
+    components: AdjustmentComponents
+    method: str
+    specification: str
     series: Mapping[str, OutputSeries]
     diagnostics: Mapping[str, bool | float | int | str]
     messages: tuple[ProcessingMessage, ...]
-    method: str
-    specification: str
+    forecasts: AdjustmentForecasts = field(default_factory=AdjustmentForecasts)
     arima_model: ArimaModel | None = None
+
+    @property
+    def observed(self) -> OutputSeries:
+        return self.components.observed
+
+    @property
+    def seasonally_adjusted(self) -> OutputSeries:
+        return self.components.seasonally_adjusted
+
+    @property
+    def calendar_adjusted(self) -> OutputSeries:
+        return self.components.calendar_adjusted
+
+    @property
+    def trend(self) -> OutputSeries:
+        return self.components.trend
+
+    @property
+    def seasonal(self) -> OutputSeries:
+        return self.components.seasonal
+
+    @property
+    def irregular(self) -> OutputSeries:
+        return self.components.irregular
+
+    def to_compact_dict(self) -> dict[str, list[float]]:
+        return self.components.to_compact_dict()
+
+    def to_forecast_dict(self) -> dict[str, list[float]]:
+        return self.forecasts.to_compact_dict()
 
 
 def _jar_path() -> Path:
@@ -119,7 +213,7 @@ def adjust(
     outlier_detection: Mapping[str, Any] | None = None,
     seats: Mapping[str, Any] | None = None,
     detailed: bool = False,
-) -> dict[str, list[float]] | AdjustmentResult:
+) -> AdjustmentResult:
     """Seasonally adjust one regular series using X13 or TRAMO/SEATS."""
     if not values:
         raise ValueError("values must not be empty")
@@ -177,33 +271,72 @@ def adjust(
     _register_calendar(context, calendar)
     results = factory.process(data, java_spec, context)
 
-    if detailed:
-        return _detailed_result(
-            results,
-            method,
-            spec,
-            TsData,
-            _uses_auto_model(java_spec, method),
-        )
-
-    output: dict[str, list[float]] = {}
-    for name in COMPACT_COMPONENTS:
-        series = results.getData(name, TsData.class_)
-        if series is None:
-            information = "; ".join(str(item) for item in results.getProcessingInformation())
-            detail = f": {information}" if information else ""
-            raise RuntimeError(f"JDemetra+ did not produce the '{name}' series{detail}")
-        output[name] = [float(value) for value in series.internalStorage()]
-    return output
+    return _adjustment_result(
+        results,
+        method,
+        spec,
+        TsData,
+        _uses_auto_model(java_spec, method),
+        detailed,
+    )
 
 
-def _detailed_result(
+def _adjustment_result(
     results: Any,
     method: str,
     specification: str,
     TsData: Any,
     automatic: bool,
+    detailed: bool,
 ) -> AdjustmentResult:
+    component_values = {}
+    component_keys = {
+        "y": "y",
+        "ycal": "preprocessing.ycal",
+        "sa": "sa",
+        "t": "t",
+        "s": "s",
+        "i": "i",
+    }
+    for name, result_key in component_keys.items():
+        value = results.getData(result_key, TsData.class_)
+        if value is None:
+            information = "; ".join(str(item) for item in results.getProcessingInformation())
+            detail = f": {information}" if information else ""
+            raise RuntimeError(
+                f"JDemetra+ did not produce the '{result_key}' series{detail}"
+            )
+        component_values[name] = _output_series(value)
+    components = AdjustmentComponents(
+        observed=component_values["y"],
+        calendar_adjusted=component_values["ycal"],
+        seasonally_adjusted=component_values["sa"],
+        trend=component_values["t"],
+        seasonal=component_values["s"],
+        irregular=component_values["i"],
+    )
+    forecasts = AdjustmentForecasts(
+        observed=_optional_output_series(results, "final.y_f", TsData),
+        calendar_adjusted=_optional_output_series(
+            results, "preprocessing.ycal_f", TsData
+        ),
+        seasonally_adjusted=_optional_output_series(results, "final.sa_f", TsData),
+        trend=_optional_output_series(results, "final.t_f", TsData),
+        seasonal=_optional_output_series(results, "final.s_f", TsData),
+        irregular=_optional_output_series(results, "final.i_f", TsData),
+    )
+
+    if not detailed:
+        return AdjustmentResult(
+            components=components,
+            forecasts=forecasts,
+            method=method,
+            specification=specification,
+            series={},
+            diagnostics={},
+            messages=(),
+        )
+
     series: dict[str, OutputSeries] = {}
     diagnostics: dict[str, bool | float | int | str] = {}
     for java_name, java_type in results.getDictionary().entrySet():
@@ -211,13 +344,7 @@ def _detailed_result(
         if java_type == TsData.class_:
             value = results.getData(name, TsData.class_)
             if value is not None:
-                start = value.getStart()
-                series[name] = OutputSeries(
-                    values=tuple(float(item) for item in value.internalStorage()),
-                    frequency=str(value.getFrequency()),
-                    start_year=int(start.getYear()),
-                    start_period=int(start.getPosition()) + 1,
-                )
+                series[name] = _output_series(value)
             continue
         class_name = str(java_type.getName())
         if class_name in {
@@ -247,13 +374,35 @@ def _detailed_result(
         for item in results.getProcessingInformation()
     )
     return AdjustmentResult(
+        components=components,
+        forecasts=forecasts,
+        method=method,
+        specification=specification,
         series=series,
         diagnostics=diagnostics,
         messages=messages,
-        method=method,
-        specification=specification,
         arima_model=_arima_model(results, diagnostics, automatic),
     )
+
+
+def _output_series(value: Any) -> OutputSeries:
+    start = value.getStart()
+    return OutputSeries(
+        values=tuple(float(item) for item in value.internalStorage()),
+        frequency=str(value.getFrequency()),
+        start_year=int(start.getYear()),
+        start_period=int(start.getPosition()) + 1,
+    )
+
+
+def _optional_output_series(
+    results: Any, name: str, TsData: Any
+) -> OutputSeries | None:
+    value = results.getData(name, TsData.class_)
+    if value is None:
+        return None
+    output = _output_series(value)
+    return output if output.values else None
 
 
 def _arima_model(

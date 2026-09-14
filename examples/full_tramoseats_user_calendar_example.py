@@ -148,7 +148,8 @@ if __name__ == "__main__":
         detailed=True,
     )
 
-    model = result.arima_models["turnover"]
+    turnover_result = result.for_series("turnover")
+    model = turnover_result.arima_model
     if model is None:
         raise RuntimeError("TRAMO/SEATS did not report a fitted ARIMA model")
 
@@ -156,7 +157,8 @@ if __name__ == "__main__":
         ("turnover", name)
         for name in ("final.y", "final.sa", "final.t", "final.s", "final.i", "final.sa_f")
     ]
-    output = result.series.loc[:, output_columns].dropna(how="all")
+    assert result.detailed_series is not None
+    output = result.detailed_series.loc[:, output_columns].dropna(how="all")
     output_path = Path("tramoseats_user_calendar_results.csv")
     output.to_csv(output_path)
 
@@ -164,8 +166,8 @@ if __name__ == "__main__":
     print("Selected UserDefined calendar:", selected_calendars["turnover"])
     print("Built-in trading days: disabled by UserDefined selection")
     print(f"Fitted model: {model.notation}, mean={model.mean}, automatic={model.automatic}")
-    print("Diagnostics:", len(result.diagnostics["turnover"]))
-    print("Messages:", len(result.messages["turnover"]))
+    print("Diagnostics:", len(turnover_result.diagnostics))
+    print("Messages:", len(turnover_result.messages))
     print("Forecast:")
-    print(result.series[("turnover", "final.sa_f")].dropna().round(3))
+    print(result.detailed_series[("turnover", "final.sa_f")].dropna().round(3))
     print(f"Saved detailed components to {output_path.resolve()}")

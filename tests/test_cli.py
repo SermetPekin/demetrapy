@@ -7,7 +7,31 @@ from unittest.mock import patch
 
 from demetrapy.cli import run
 from demetrapy.config import AdjustmentConfig
-from demetrapy.engine import AdjustmentResult, OutputSeries
+from demetrapy.engine import AdjustmentComponents, AdjustmentResult, OutputSeries
+
+
+def adjustment_result(values_by_component, *, detailed=False):
+    outputs = {
+        name: OutputSeries(tuple(values), "Monthly", 2024, 1)
+        for name, values in values_by_component.items()
+    }
+    return AdjustmentResult(
+        components=AdjustmentComponents(
+            observed=outputs["y"],
+            calendar_adjusted=outputs["ycal"],
+            seasonally_adjusted=outputs["sa"],
+            trend=outputs["t"],
+            seasonal=outputs["s"],
+            irregular=outputs["i"],
+        ),
+        method="x13",
+        specification="RSA4",
+        series={f"final.{name}": output for name, output in outputs.items()}
+        if detailed
+        else {},
+        diagnostics={},
+        messages=(),
+    )
 
 
 class ConfigTest(unittest.TestCase):
@@ -36,13 +60,14 @@ class ConfigTest(unittest.TestCase):
 class CliTest(unittest.TestCase):
     @patch("demetrapy.cli.adjust")
     def test_writes_adjusted_csv(self, mock_adjust) -> None:
-        mock_adjust.return_value = {
+        mock_adjust.return_value = adjustment_result({
             "y": [10.0, 20.0],
+            "ycal": [10.0, 20.0],
             "sa": [11.0, 19.0],
             "t": [12.0, 18.0],
             "s": [-1.0, 1.0],
             "i": [-1.0, 1.0],
-        }
+        })
         with tempfile.TemporaryDirectory() as directory:
             input_path = Path(directory) / "input.csv"
             output_path = Path(directory) / "output.csv"
@@ -53,8 +78,11 @@ class CliTest(unittest.TestCase):
                 rows = list(csv.reader(stream))
 
         self.assertEqual(exit_code, 0)
-        self.assertEqual(rows[0], ["date", "y", "sa", "t", "s", "i"])
-        self.assertEqual(rows[1], ["2024-01-01", "10.0", "11.0", "12.0", "-1.0", "-1.0"])
+        self.assertEqual(rows[0], ["date", "y", "ycal", "sa", "t", "s", "i"])
+        self.assertEqual(
+            rows[1],
+            ["2024-01-01", "10.0", "10.0", "11.0", "12.0", "-1.0", "-1.0"],
+        )
         mock_adjust.assert_called_once_with(
             [10.0, 20.0],
             start_year=2024,
@@ -89,9 +117,12 @@ class CliTest(unittest.TestCase):
 
     @patch("demetrapy.cli.adjust")
     def test_named_data_and_cli_options_override_config(self, mock_adjust) -> None:
-        mock_adjust.return_value = {
-            name: [10.0, 20.0] for name in ("y", "sa", "t", "s", "i")
-        }
+        mock_adjust.return_value = adjustment_result(
+            {
+                name: [10.0, 20.0]
+                for name in ("y", "ycal", "sa", "t", "s", "i")
+            }
+        )
         with tempfile.TemporaryDirectory() as directory:
             data_path = Path(directory) / "quarterly.csv"
             config_path = Path(directory) / "config.json"
@@ -133,15 +164,12 @@ class CliTest(unittest.TestCase):
     @patch("demetrapy.cli.plot_adjustment")
     @patch("demetrapy.cli.adjust")
     def test_plot_output_uses_detailed_result(self, mock_adjust, mock_plot) -> None:
-        output_series = OutputSeries((10.0, 20.0), "Monthly", 2024, 1)
-        mock_adjust.return_value = AdjustmentResult(
-            series={
-                f"final.{name}": output_series for name in ("y", "sa", "t", "s", "i")
+        mock_adjust.return_value = adjustment_result(
+            {
+                name: [10.0, 20.0]
+                for name in ("y", "ycal", "sa", "t", "s", "i")
             },
-            diagnostics={},
-            messages=(),
-            method="x13",
-            specification="RSA4",
+            detailed=True,
         )
         with tempfile.TemporaryDirectory() as directory:
             input_path = Path(directory) / "input.csv"

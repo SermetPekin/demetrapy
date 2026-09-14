@@ -3,7 +3,13 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from demetrapy import DataFrameAdjustmentResult, adjust_dataframe
+from demetrapy import (
+    AdjustmentComponents,
+    AdjustmentResult,
+    DataFrameAdjustmentResult,
+    OutputSeries,
+    adjust_dataframe,
+)
 
 
 class DataFrameAdjustmentTest(unittest.TestCase):
@@ -29,7 +35,17 @@ class DataFrameAdjustmentTest(unittest.TestCase):
 
         def fake_adjust(values, **options):
             calls.append((values, options))
-            return {name: list(values) for name in ("y", "sa", "t", "s", "i")}
+            output = OutputSeries(tuple(values), "Monthly", 2015, 1)
+            return AdjustmentResult(
+                components=AdjustmentComponents(
+                    output, output, output, output, output, output
+                ),
+                method=options["method"],
+                specification="RSA4",
+                series={},
+                diagnostics={},
+                messages=(),
+            )
 
         with patch("demetrapy.dataframe.adjust", side_effect=fake_adjust):
             result = adjust_dataframe(
@@ -42,7 +58,8 @@ class DataFrameAdjustmentTest(unittest.TestCase):
                 method="tramoseats",
             )
 
-        self.assertEqual(result.columns.names, ["series", "component"])
+        self.assertIsInstance(result, DataFrameAdjustmentResult)
+        self.assertEqual(result.components.columns.names, ["series", "component"])
         self.assertEqual(len(calls), 2)
         for _, options in calls:
             self.assertEqual(options["frequency"], "Monthly")
@@ -104,11 +121,24 @@ class DataFrameAdjustmentTest(unittest.TestCase):
                     user_defined_calendars={"sales": ["weighted_days"]},
                     method=method,
                 )
-                self.assertEqual(result.shape, (120, 5))
+                self.assertIsInstance(result, DataFrameAdjustmentResult)
+                self.assertEqual(result.components.shape, (120, 6))
                 self.assertEqual(
-                    list(result["sales"].columns),
-                    ["y", "sa", "t", "s", "i"],
+                    list(result.components["sales"].columns),
+                    [
+                        "observed",
+                        "calendar_adjusted",
+                        "seasonally_adjusted",
+                        "trend",
+                        "seasonal",
+                        "irregular",
+                    ],
                 )
+                self.assertEqual(
+                    list(result.to_compact_frame()["sales"].columns),
+                    ["y", "ycal", "sa", "t", "s", "i"],
+                )
+                self.assertEqual(result.seasonally_adjusted.shape, (120, 1))
 
     def test_detailed_result_extends_dataframe_into_forecast_domain(self) -> None:
         target_index = pd.date_range("2015-01-01", periods=120, freq="MS")
@@ -130,26 +160,30 @@ class DataFrameAdjustmentTest(unittest.TestCase):
         )
 
         self.assertIsInstance(result, DataFrameAdjustmentResult)
-        self.assertIn(("sales", "final.sa"), result.series.columns)
-        self.assertIn(("sales", "final.sa_f"), result.series.columns)
+        self.assertIsNotNone(result.detailed_series)
+        assert result.detailed_series is not None
+        self.assertIn(("sales", "final.sa"), result.detailed_series.columns)
+        self.assertIn(("sales", "final.sa_f"), result.detailed_series.columns)
         self.assertEqual(
-            result.series[("sales", "final.sa")].first_valid_index(),
+            result.detailed_series[("sales", "final.sa")].first_valid_index(),
             pd.Timestamp("2015-01-01"),
         )
         self.assertEqual(
-            result.series[("sales", "final.sa_f")].first_valid_index(),
+            result.detailed_series[("sales", "final.sa_f")].first_valid_index(),
             pd.Timestamp("2025-01-01"),
         )
         self.assertEqual(
-            result.series[("sales", "final.sa_f")].last_valid_index(),
+            result.detailed_series[("sales", "final.sa_f")].last_valid_index(),
             pd.Timestamp("2025-12-01"),
         )
-        self.assertEqual(result.series[("sales", "final.sa")].count(), 120)
-        self.assertEqual(result.series[("sales", "final.sa_f")].count(), 12)
-        self.assertGreater(len(result.diagnostics["sales"]), 50)
-        self.assertIsNotNone(result.arima_models["sales"])
-        self.assertEqual(result.arima_models["sales"].period, 12)
-        self.assertTrue(result.arima_models["sales"].automatic)
+        self.assertEqual(result.detailed_series[("sales", "final.sa")].count(), 120)
+        self.assertEqual(result.detailed_series[("sales", "final.sa_f")].count(), 12)
+        series_result = result.for_series("sales")
+        self.assertGreater(len(series_result.diagnostics), 50)
+        self.assertIsNotNone(series_result.arima_model)
+        assert series_result.arima_model is not None
+        self.assertEqual(series_result.arima_model.period, 12)
+        self.assertTrue(series_result.arima_model.automatic)
 
 
 if __name__ == "__main__":

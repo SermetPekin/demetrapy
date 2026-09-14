@@ -4,14 +4,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from demetrapy import COMPACT_COMPONENTS, RESULT_SCHEMA_VERSION
+from demetrapy import COMPACT_COMPONENTS, FORECAST_COMPONENTS, RESULT_SCHEMA_VERSION
 from demetrapy.engine import AdjustmentResult, _jar_path, adjust
 
 
 class PublicContractTest(unittest.TestCase):
     def test_compact_result_schema_is_versioned(self) -> None:
-        self.assertEqual(RESULT_SCHEMA_VERSION, 1)
-        self.assertEqual(COMPACT_COMPONENTS, ("y", "sa", "t", "s", "i"))
+        self.assertEqual(RESULT_SCHEMA_VERSION, 2)
+        self.assertEqual(COMPACT_COMPONENTS, ("y", "ycal", "sa", "t", "s", "i"))
+        self.assertEqual(
+            FORECAST_COMPONENTS,
+            ("y_f", "ycal_f", "sa_f", "t_f", "s_f", "i_f"),
+        )
 
 
 class JarPathTest(unittest.TestCase):
@@ -132,7 +136,8 @@ class ProcessingTest(unittest.TestCase):
                     method=method,
                     calendar={"type": "None"},
                 )
-                self.assertEqual(tuple(result), COMPACT_COMPONENTS)
+                self.assertIsInstance(result, AdjustmentResult)
+                self.assertEqual(tuple(result.to_compact_dict()), COMPACT_COMPONENTS)
 
     def test_x13_and_tramoseats_accept_user_variables(self) -> None:
         values = [100 + index * 0.2 + (index % 12) for index in range(120)]
@@ -153,8 +158,10 @@ class ProcessingTest(unittest.TestCase):
                         }
                     ],
                 )
-                self.assertEqual(tuple(result), COMPACT_COMPONENTS)
-                self.assertTrue(all(len(series) == 120 for series in result.values()))
+                self.assertEqual(tuple(result.to_compact_dict()), COMPACT_COMPONENTS)
+                self.assertTrue(
+                    all(len(series) == 120 for series in result.to_compact_dict().values())
+                )
 
     def test_x13_and_tramoseats_accept_full_domain_calendar_variables(self) -> None:
         values = [100 + index * 0.2 + (index % 12) for index in range(120)]
@@ -176,8 +183,61 @@ class ProcessingTest(unittest.TestCase):
                         }
                     ],
                 )
-                self.assertEqual(tuple(result), COMPACT_COMPONENTS)
-                self.assertTrue(all(len(series) == 120 for series in result.values()))
+                self.assertEqual(tuple(result.to_compact_dict()), COMPACT_COMPONENTS)
+                self.assertTrue(
+                    all(len(series) == 120 for series in result.to_compact_dict().values())
+                )
+
+    def test_result_type_and_named_components_do_not_depend_on_detail_level(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(120)]
+
+        compact = adjust(values, start_year=2015)
+        detailed = adjust(values, start_year=2015, detailed=True)
+
+        self.assertIsInstance(compact, AdjustmentResult)
+        self.assertIsInstance(detailed, AdjustmentResult)
+        self.assertEqual(compact.seasonally_adjusted, compact.components["sa"])
+        self.assertEqual(
+            compact.to_compact_dict()["sa"],
+            list(compact.seasonally_adjusted.values),
+        )
+        self.assertEqual(compact.calendar_adjusted, compact.components["ycal"])
+        self.assertEqual(tuple(compact.to_forecast_dict()), FORECAST_COMPONENTS)
+        self.assertFalse(compact.series)
+        self.assertIn("final.sa", detailed.series)
+
+    def test_zero_horizon_exposes_no_forecasts(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(120)]
+
+        cases = {
+            "x13": {"forecast_horizon": 0},
+            "tramoseats": {"seats": {"prediction_length": 0}},
+        }
+        for method, options in cases.items():
+            with self.subTest(method=method):
+                result = adjust(
+                    values,
+                    start_year=2015,
+                    method=method,
+                    **options,
+                )
+                self.assertEqual(result.to_forecast_dict(), {})
+
+    def test_default_results_include_common_forecasts_for_both_engines(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(120)]
+
+        for method in ("x13", "tramoseats"):
+            with self.subTest(method=method):
+                result = adjust(values, start_year=2015, method=method)
+
+                self.assertEqual(tuple(result.to_forecast_dict()), FORECAST_COMPONENTS)
+                self.assertTrue(
+                    all(
+                        len(values) == 12
+                        for values in result.to_forecast_dict().values()
+                    )
+                )
+                self.assertIsNotNone(result.forecasts.seasonal)
 
     def test_detailed_results_include_domain_aware_forecasts(self) -> None:
         values = [100 + index * 0.2 + (index % 12) for index in range(120)]
@@ -271,7 +331,7 @@ class ProcessingTest(unittest.TestCase):
             preprocessing={"transform": {"function": "None"}},
         )
 
-        self.assertEqual(tuple(result), COMPACT_COMPONENTS)
+        self.assertEqual(tuple(result.to_compact_dict()), COMPACT_COMPONENTS)
 
 
 if __name__ == "__main__":

@@ -236,10 +236,14 @@ TRAMO preprocessing stage.
 
 ## Detailed Results
 
-`detailed=True` changes the returned Python object, not the calculation.
+`detailed=True` changes the information retained, not the calculation or the
+returned Python object.
 
-The compact default returns `y`, `sa`, `t`, `s`, and `i`. Detailed mode returns
-an `AdjustmentResult` containing:
+`adjust()` always returns an `AdjustmentResult` with named primary components.
+`to_compact_dict()` returns the `y`, `ycal`, `sa`, `t`, `s`, and `i`
+compatibility mapping. `forecasts` and `to_forecast_dict()` expose available
+future-domain `y_f`, `ycal_f`, `sa_f`, `t_f`, `s_f`, and `i_f` series.
+Detailed mode additionally populates:
 
 - `series`: all available domain-aware JDemetra time series
 - `diagnostics`: scalar diagnostics
@@ -261,8 +265,8 @@ print(result.arima_model.automatic)
 forecast = result.series["final.sa_f"]
 ```
 
-Detailed DataFrame results expose fitted models by target through
-`result.arima_models[target]`.
+DataFrame results expose per-target details through `result.for_series(target)`;
+for example, `result.for_series(target).arima_model` returns the fitted model.
 
 ## Complete Examples
 

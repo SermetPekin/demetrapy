@@ -88,9 +88,17 @@ def _result_frame(
     pd: Any,
 ) -> tuple[Any, Any | None]:
     if isinstance(result, DataFrameAdjustmentResult):
-        frame = result.series
+        frame = (
+            result.detailed_series
+            if result.detailed_series is not None
+            else result.components
+        )
     elif isinstance(result, AdjustmentResult):
-        frame = _output_frame(result, pd)
+        if result.series:
+            frame = _output_frame(result, pd)
+        else:
+            plot_index = pd.to_datetime(index) if index is not None else None
+            frame = pd.DataFrame(result.to_compact_dict(), index=plot_index)
     else:
         frame = result
     if isinstance(frame, Mapping):
@@ -109,6 +117,15 @@ def _result_frame(
         frame = frame[target]
     elif target is not None:
         raise ValueError("target is only valid for a multi-series result")
+    frame = frame.rename(
+        columns={
+            "observed": "y",
+            "seasonally_adjusted": "sa",
+            "trend": "t",
+            "seasonal": "s",
+            "irregular": "i",
+        }
+    )
     return frame, target
 
 

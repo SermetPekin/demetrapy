@@ -30,7 +30,7 @@ def compare_methods(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     method_results = {}
     for method in ("x13", "tramoseats"):
         adjusted = adjust_dataframe(data, method=method, spec="RSA4")
-        method_results[method] = adjusted["value"]
+        method_results[method] = adjusted.to_compact_frame()["value"]
 
     x13 = method_results["x13"]
     tramoseats = method_results["tramoseats"]

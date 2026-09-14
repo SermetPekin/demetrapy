@@ -134,7 +134,7 @@ result = adjust(
     method="tramoseats",
     spec="RSA4",
 )
-print(result["sa"])
+print(result.seasonally_adjusted.values)
 ```
 
 ## Test the Installation

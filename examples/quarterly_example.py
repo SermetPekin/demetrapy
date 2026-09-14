@@ -46,10 +46,11 @@ if __name__ == "__main__":
             preprocessing={"arima": explicit_arima},
             detailed=True,
         )
-        model = result.arima_models["gdp"]
+        model = result.for_series("gdp").arima_model
         if model is None:
             raise RuntimeError(f"{method} did not report a fitted ARIMA model")
-        adjusted[method] = result.series[("gdp", "final.sa")].dropna()
+        assert result.detailed_series is not None
+        adjusted[method] = result.detailed_series[("gdp", "final.sa")].dropna()
         print(
             f"{method}: {model.notation}, frequency={model.period}, "
             f"automatic={model.automatic}"

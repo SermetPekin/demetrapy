@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from demetrapy import adjust
+from demetrapy import DataFrameAdjustmentResult, adjust_dataframe
 
 
 def create_input() -> pd.DataFrame:
@@ -17,22 +17,45 @@ def create_input() -> pd.DataFrame:
     return pd.DataFrame({"value": values}, index=dates).rename_axis("date")
 
 
-def seasonally_adjust(frame: pd.DataFrame) -> pd.DataFrame:
-    first_date = frame.index[0]
-    result = adjust(
-        frame["value"].tolist(),
-        frequency="Monthly",
-        start_year=first_date.year,
-        start_period=first_date.month,
+def seasonally_adjust(frame: pd.DataFrame) -> DataFrameAdjustmentResult:
+    return adjust_dataframe(
+        frame,
         spec="RSA4",
+        forecast_horizon=12,
+        detailed=True,
     )
-    return pd.DataFrame(result, index=frame.index).rename_axis("date")
 
 
 if __name__ == "__main__":
     input_frame = create_input()
-    adjusted_frame = seasonally_adjust(input_frame)
+    result = seasonally_adjust(input_frame)
+    adjusted_frame = result.to_compact_frame()["value"]
 
+    assert result.detailed_series is not None
+    detailed_frame = result.detailed_series["value"]
+    forecast_columns = [
+        "final.y_f",
+        "preprocessing.ycal_f",
+        "final.sa_f",
+        "final.t_f",
+        "final.s_f",
+        "final.i_f",
+    ]
+    forecast_frame = detailed_frame[forecast_columns].dropna(how="all")
+    series_result = result.for_series("value")
+
+    print("Historical components:")
     print(adjusted_frame.head(12).round(3))
+    print("\nForecast components:")
+    print(forecast_frame.round(3))
+    print(f"\nDetailed series: {len(detailed_frame.columns)}")
+    print(f"Diagnostics: {len(series_result.diagnostics)}")
+    print(f"Messages: {len(series_result.messages)}")
+
     adjusted_frame.to_csv("adjusted_dataframe.csv")
-    print("\nSaved adjusted_dataframe.csv")
+    forecast_frame.to_csv("forecast_dataframe.csv")
+    detailed_frame.to_csv("detailed_dataframe.csv")
+    print(
+        "\nSaved adjusted_dataframe.csv, forecast_dataframe.csv, "
+        "and detailed_dataframe.csv"
+    )

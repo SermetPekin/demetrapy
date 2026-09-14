@@ -319,8 +319,7 @@ print(result.arima_model.notation)
 print(result.arima_model.automatic)
 ```
 
-For a detailed DataFrame result, each target has an entry in
-`result.arima_models`.
+For a DataFrame result, use `result.for_series(target).arima_model`.
 
 For a complete TRAMO/SEATS example with all explicit ARIMA fields, every
 supported TRAMO transform and estimation option, a separate UserDefined
@@ -385,7 +384,7 @@ estimating it.
   ],
   "outliers": [{"type": "AO", "date": "2020-04-01"}],
   "interventions": [
-    {
+    seasonally_adjusted = result.seasonally_adjusted.values
       "name": "closure",
       "sequences": [{"start": "2020-03-01", "end": "2020-05-31"}]
     }
@@ -449,13 +448,18 @@ result = adjust(
     spec="RSA4",
 )
 
-seasonally_adjusted = result["sa"]
+seasonally_adjusted = result.seasonally_adjusted.values
 ```
 
 ### Detailed Results
 
-The default result remains the five primary component lists. Set
-`detailed=True` to receive an `AdjustmentResult` containing:
+`adjust()` always returns an `AdjustmentResult`. Its named component
+attributes are available at every detail level, and `to_compact_dict()`
+provides the `y`, `ycal`, `sa`, `t`, `s`, and `i` compatibility mapping.
+`result.forecasts` exposes domain-aware forecasts, and
+`result.to_forecast_dict()` provides the available `y_f`, `ycal_f`, `sa_f`,
+`t_f`, `s_f`, and `i_f` values. A zero forecast horizon produces no forecast
+entries. Set `detailed=True` to additionally populate:
 
 | Attribute | Content |
 | --- | --- |
@@ -542,14 +546,18 @@ JDemetra+'s in-memory `ProcessingContext`. All pool columns are registered, but
 only mapped columns enter each target's trading-day specification. Unmapped
 targets use no user-defined calendar regressors.
 
-The result has two-level columns `(series, component)`, where each target has
-`y`, `sa`, `t`, `s`, and `i`. This path bypasses JDemetra+ workspace XML; no
-workspace file is generated or interpreted.
+The returned `DataFrameAdjustmentResult.components` has two-level columns
+`(series, component)`, where each target has `observed`,
+`calendar_adjusted`, `seasonally_adjusted`, `trend`, `seasonal`, and
+`irregular`. `to_compact_frame()` provides the `y`, `ycal`, `sa`, `t`, `s`,
+and `i` aliases. Per-target forecasts are available through
+`result.for_series(target).forecasts`. This path bypasses JDemetra+ workspace
+XML; no workspace file is generated or interpreted.
 
-Set `detailed=True` to receive a `DataFrameAdjustmentResult`. Its `series`
-attribute is one DataFrame containing every JDemetra time-series output, with
-columns `(target, output)`. Diagnostics and messages are mappings keyed by
-target column:
+`adjust_dataframe()` always returns the same wrapper. With `detailed=True`,
+its `detailed_series` attribute contains every JDemetra time-series output,
+with columns `(target, output)`. Use `for_series(target)` for that target's
+diagnostics, messages, and fitted model:
 
 ```python
 detailed = adjust_dataframe(
@@ -559,9 +567,9 @@ detailed = adjust_dataframe(
   detailed=True,
 )
 
-sa = detailed.series[("sales", "final.sa")].dropna()
-sa_forecast = detailed.series[("sales", "final.sa_f")].dropna()
-sales_diagnostics = detailed.diagnostics["sales"]
+sa = detailed.detailed_series[("sales", "final.sa")].dropna()
+sa_forecast = detailed.detailed_series[("sales", "final.sa_f")].dropna()
+sales_diagnostics = detailed.for_series("sales").diagnostics
 ```
 
 Because every output keeps its own domain, the DataFrame uses the union of all
@@ -581,8 +589,7 @@ result = adjust(
     forecast_horizon=-1,
     benchmarking=True,
 )
-```
-
+For a DataFrame result, use `result.for_series(target).arima_model`.
 ## Troubleshooting
 
 - `CSV must contain columns`: set `date_column` and `value_column` to match the

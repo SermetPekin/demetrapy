@@ -3,17 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import math
 from typing import Any
 
-from .engine import (
-    COMPACT_COMPONENTS,
-    AdjustmentResult,
-    ArimaModel,
-    ProcessingMessage,
-    adjust,
-)
+from .engine import AdjustmentResult, adjust
 
 _FREQUENCIES = {
     1: "Monthly",
@@ -25,12 +19,53 @@ _FREQUENCIES = {
 
 @dataclass(frozen=True)
 class DataFrameAdjustmentResult:
-    series: Any
-    diagnostics: Mapping[Any, Mapping[str, bool | float | int | str]]
-    messages: Mapping[Any, tuple[ProcessingMessage, ...]]
-    methods: Mapping[Any, str]
-    specifications: Mapping[Any, str]
-    arima_models: Mapping[Any, ArimaModel | None] = field(default_factory=dict)
+    components: Any
+    results: Mapping[Any, AdjustmentResult]
+    detailed_series: Any | None = None
+
+    def for_series(self, target: Any) -> AdjustmentResult:
+        try:
+            return self.results[target]
+        except KeyError as error:
+            raise KeyError(f"unknown result series: {target}") from error
+
+    def to_compact_frame(self) -> Any:
+        aliases = {
+            "observed": "y",
+            "calendar_adjusted": "ycal",
+            "seasonally_adjusted": "sa",
+            "trend": "t",
+            "seasonal": "s",
+            "irregular": "i",
+        }
+        return self.components.rename(columns=aliases, level="component")
+
+    @property
+    def observed(self) -> Any:
+        return self._component("observed")
+
+    @property
+    def seasonally_adjusted(self) -> Any:
+        return self._component("seasonally_adjusted")
+
+    @property
+    def calendar_adjusted(self) -> Any:
+        return self._component("calendar_adjusted")
+
+    @property
+    def trend(self) -> Any:
+        return self._component("trend")
+
+    @property
+    def seasonal(self) -> Any:
+        return self._component("seasonal")
+
+    @property
+    def irregular(self) -> Any:
+        return self._component("irregular")
+
+    def _component(self, name: str) -> Any:
+        return self.components.xs(name, axis=1, level="component")
 
 
 def adjust_dataframe(
@@ -40,7 +75,7 @@ def adjust_dataframe(
     user_defined_calendars: Mapping[Any, Sequence[Any]] | None = None,
     detailed: bool = False,
     **adjustment_options: Any,
-) -> Any | DataFrameAdjustmentResult:
+) -> DataFrameAdjustmentResult:
     """Adjust DataFrame columns with optional user-defined trading-day variables."""
     pd = _pandas()
     frame = data.to_frame() if isinstance(data, pd.Series) else data
@@ -78,13 +113,9 @@ def adjust_dataframe(
         if len(missing_periods):
             raise ValueError("calendar_pool must cover every target data period")
 
-    adjusted_frames = []
+    component_frames = []
     detailed_frames = []
-    diagnostics = {}
-    messages = {}
-    methods = {}
-    specifications = {}
-    arima_models = {}
+    results = {}
     for target in frame.columns:
         selected_columns = list(mapping.get(target, ()))
         if isinstance(mapping.get(target), (str, bytes)):
@@ -124,32 +155,46 @@ def adjust_dataframe(
             detailed=detailed,
             **adjustment_options,
         )
+        results[target] = result
+        component_frames.append(_components_frame(target, result, frame.index, pd))
         if detailed:
-            if not isinstance(result, AdjustmentResult):
-                raise TypeError("engine did not return a detailed result")
             detailed_frames.append(_detailed_frame(target, result, pd))
-            diagnostics[target] = result.diagnostics
-            messages[target] = result.messages
-            methods[target] = result.method
-            specifications[target] = result.specification
-            arima_models[target] = result.arima_model
-            continue
-        adjusted = pd.DataFrame(result, index=frame.index)[list(COMPACT_COMPONENTS)]
-        adjusted.columns = pd.MultiIndex.from_product(
-            [[target], adjusted.columns], names=["series", "component"]
-        )
-        adjusted_frames.append(adjusted)
 
-    if detailed:
-        return DataFrameAdjustmentResult(
-            series=pd.concat(detailed_frames, axis=1).sort_index().rename_axis(frame.index.name),
-            diagnostics=diagnostics,
-            messages=messages,
-            methods=methods,
-            specifications=specifications,
-            arima_models=arima_models,
+    detailed_series = None
+    if detailed_frames:
+        detailed_series = (
+            pd.concat(detailed_frames, axis=1)
+            .sort_index()
+            .rename_axis(frame.index.name)
         )
-    return pd.concat(adjusted_frames, axis=1).rename_axis(frame.index.name)
+    return DataFrameAdjustmentResult(
+        components=pd.concat(component_frames, axis=1).rename_axis(frame.index.name),
+        results=results,
+        detailed_series=detailed_series,
+    )
+
+
+def _components_frame(
+    target: Any,
+    result: AdjustmentResult,
+    index: Any,
+    pd: Any,
+) -> Any:
+    frame = pd.DataFrame(
+        {
+            "observed": result.observed.values,
+            "calendar_adjusted": result.calendar_adjusted.values,
+            "seasonally_adjusted": result.seasonally_adjusted.values,
+            "trend": result.trend.values,
+            "seasonal": result.seasonal.values,
+            "irregular": result.irregular.values,
+        },
+        index=index,
+    )
+    frame.columns = pd.MultiIndex.from_product(
+        [[target], frame.columns], names=["series", "component"]
+    )
+    return frame
 
 
 def _detailed_frame(target: Any, result: AdjustmentResult, pd: Any) -> Any:

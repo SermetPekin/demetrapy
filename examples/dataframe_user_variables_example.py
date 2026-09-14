@@ -53,13 +53,15 @@ if __name__ == "__main__":
 
     print("Available calendar columns:", list(calendars.columns))
     print("Calendars selected by target:", selected_calendars)
-    print("Output frame shape:", result.series.shape)
+    assert result.detailed_series is not None
+    print("Output frame shape:", result.detailed_series.shape)
     print("Diagnostics by target:", {
-        target: len(values) for target, values in result.diagnostics.items()
+        target: len(result.for_series(target).diagnostics)
+        for target in observations.columns
     })
-    sales_history = result.series.loc[
+    sales_history = result.detailed_series.loc[
         :, [("sales", "final.y"), ("sales", "final.sa")]
     ].dropna()
     print(sales_history.head(12).round(3))
     print("Sales forecast:")
-    print(result.series.loc[:, ("sales", "final.sa_f")].dropna().round(3))
+    print(result.detailed_series.loc[:, ("sales", "final.sa_f")].dropna().round(3))

@@ -289,11 +289,17 @@ def main() -> None:
         return
 
     selected_target = st.selectbox("Displayed series", result_targets)
-    model = result.arima_models.get(selected_target)
+    target_result = result.for_series(selected_target)
+    detailed_series = result.detailed_series
+    if detailed_series is None:
+        st.error("Detailed output is unavailable. Run the adjustment again.")
+        return
+    target_series = detailed_series[selected_target]
+    model = target_result.arima_model
     metric_columns = st.columns(4)
-    metric_columns[0].metric("Time-series outputs", len(result.series[selected_target].columns))
-    metric_columns[1].metric("Diagnostics", len(result.diagnostics[selected_target]))
-    metric_columns[2].metric("Messages", len(result.messages[selected_target]))
+    metric_columns[0].metric("Time-series outputs", len(target_series.columns))
+    metric_columns[1].metric("Diagnostics", len(target_result.diagnostics))
+    metric_columns[2].metric("Messages", len(target_result.messages))
     metric_columns[3].metric("ARIMA model", model.notation if model else "Unavailable")
     if model is not None:
         st.caption(
@@ -312,16 +318,29 @@ def main() -> None:
             config={"displaylogo": False, "scrollZoom": True},
         )
     with data_tab:
-        output_names = list(result.series[selected_target].columns)
+        output_names = list(target_series.columns)
         defaults = [
             name
-            for name in ("final.y", "final.sa", "final.t", "final.s", "final.i", "final.sa_f")
+            for name in (
+                "final.y",
+                "preprocessing.ycal",
+                "final.sa",
+                "final.t",
+                "final.s",
+                "final.i",
+                "final.y_f",
+                "preprocessing.ycal_f",
+                "final.sa_f",
+                "final.t_f",
+                "final.s_f",
+                "final.i_f",
+            )
             if name in output_names
         ]
         selected_outputs = st.multiselect(
             "Outputs", output_names, default=defaults
         )
-        displayed = result.series[selected_target][selected_outputs].dropna(how="all")
+        displayed = target_series[selected_outputs].dropna(how="all")
         st.dataframe(displayed, width="stretch")
         st.download_button(
             "Download displayed series",
@@ -330,7 +349,7 @@ def main() -> None:
             mime="text/csv",
         )
     with diagnostics_tab:
-        diagnostics = _diagnostics_frame(result.diagnostics[selected_target], pd)
+        diagnostics = _diagnostics_frame(target_result.diagnostics, pd)
         st.dataframe(diagnostics, width="stretch", hide_index=True)
         st.download_button(
             "Download diagnostics",
@@ -346,7 +365,7 @@ def main() -> None:
                 "Origin": message.origin,
                 "Message": message.message,
             }
-            for message in result.messages[selected_target]
+            for message in target_result.messages
         ]
         if message_rows:
             st.dataframe(pd.DataFrame(message_rows), width="stretch", hide_index=True)
