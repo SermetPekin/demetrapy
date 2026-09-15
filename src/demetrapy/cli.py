@@ -1,74 +1,33 @@
 from __future__ import annotations
 
 import argparse
-import csv
+import json
 import sys
-from dataclasses import replace
-from datetime import date
 from pathlib import Path
-from typing import Sequence, TextIO
+from typing import Sequence
 
 from .config import AdjustmentConfig
-from .engine import COMPACT_COMPONENTS, AdjustmentResult, adjust
+from .csv_io import (
+    PERIODS_PER_YEAR,
+    _execute_csv,
+    _frequency_from_dates,
+    _read_csv,
+    _start,
+    _write_csv,
+)
+from .engine import adjust
 from .plotting import plot_adjustment
-
-PERIODS_PER_YEAR = {"Monthly": 12, "Quarterly": 4, "HalfYearly": 2, "Yearly": 1}
-
-
-def _read_csv(
-    path: Path, config: AdjustmentConfig
-) -> tuple[list[str], list[float], dict[str, list[float]]]:
-    with path.open(newline="", encoding="utf-8-sig") as stream:
-        reader = csv.DictReader(stream)
-        columns = reader.fieldnames or []
-        variable_columns = config.user_variable_columns()
-        required = {config.date_column, config.value_column, *variable_columns}
-        if not required.issubset(columns):
-            raise ValueError(f"CSV must contain columns: {', '.join(sorted(required))}")
-        dates: list[str] = []
-        values: list[float] = []
-        user_values = {column: [] for column in variable_columns}
-        for row_number, row in enumerate(reader, start=2):
-            dates.append(row[config.date_column])
-            try:
-                values.append(float(row[config.value_column]))
-                for column in variable_columns:
-                    user_values[column].append(float(row[column]))
-            except (TypeError, ValueError) as error:
-                raise ValueError(f"invalid number on CSV row {row_number}") from error
-    if not values:
-        raise ValueError("CSV contains no observations")
-    return dates, values, user_values
-
-
-def _start(dates: Sequence[str], frequency: str) -> tuple[int, int]:
-    try:
-        first = date.fromisoformat(dates[0])
-        periods = PERIODS_PER_YEAR[frequency]
-    except (ValueError, KeyError) as error:
-        raise ValueError(
-            "the first date must be ISO YYYY-MM-DD and frequency must be "
-            f"one of {', '.join(PERIODS_PER_YEAR)}"
-        ) from error
-    return first.year, ((first.month - 1) * periods // 12) + 1
-
-
-def _write_csv(
-    stream: TextIO, dates: Sequence[str], result: dict[str, list[float]]
-) -> None:
-    writer = csv.writer(stream)
-    names = list(result)
-    writer.writerow(["date", *names])
-    writer.writerows(
-        [current_date, *(result[name][index] for name in names)]
-        for index, current_date in enumerate(dates)
-    )
+from .readiness import is_ready, run_readiness_checks
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="demetrapy",
         description="Seasonally adjust a regular CSV series with JDemetra+ core.",
+        epilog=(
+            "Other commands: 'demetrapy check', 'demetrapy validate CONFIG', and "
+            "'demetrapy init-config --method {x13,tramoseats}'."
+        ),
     )
     parser.add_argument(
         "input", nargs="?", type=Path, help="CSV containing date and value columns"
@@ -78,6 +37,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("-c", "--config", type=Path, help="JSON adjustment configuration")
     parser.add_argument("-o", "--output", type=Path, help="output CSV (default: stdout)")
+    parser.add_argument("--audit", type=Path, help="write structured audit records")
     parser.add_argument("--method", choices=("x13", "tramoseats"), help="processing method")
     parser.add_argument("--spec", help="JDemetra+ preset, such as RSA4 or RSAfull")
     parser.add_argument(
@@ -90,47 +50,124 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _validate_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="demetrapy validate",
+        description="Validate a configuration without starting Java.",
+    )
+    parser.add_argument("config", type=Path, help="JSON configuration file")
+    parser.add_argument("--data", type=Path, help="also validate CSV columns and dates")
+    parser.add_argument(
+        "--output", type=Path, help="write the normalized configuration as JSON"
+    )
+    return parser
+
+
+def _init_config_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="demetrapy init-config",
+        description="Create a validated starter configuration.",
+    )
+    parser.add_argument("--method", required=True, choices=("x13", "tramoseats"))
+    parser.add_argument("--output", type=Path, help="destination JSON file")
+    parser.add_argument("--force", action="store_true", help="overwrite an existing file")
+    return parser
+
+
+def _run_validate(argv: Sequence[str]) -> int:
+    args = _validate_parser().parse_args(argv)
+    config = AdjustmentConfig.load(args.config)
+    if args.data:
+        dates, _, _ = _read_csv(args.data, config)
+        data_frequency = _frequency_from_dates(dates)
+        if config.frequency != data_frequency:
+            raise ValueError(
+                f"CSV dates are {data_frequency}, but configuration frequency is "
+                f"{config.frequency}"
+            )
+        _start(dates, config.frequency)
+    if args.output:
+        args.output.write_text(
+            json.dumps(config.to_dict(), indent=2) + "\n",
+            encoding="utf-8",
+        )
+    print(
+        f"Valid configuration: method={config.method}, "
+        f"spec={config.spec}, frequency={config.frequency}"
+    )
+    if args.data:
+        print(f"Valid data: {args.data}")
+    return 0
+
+
+def _run_init_config(argv: Sequence[str]) -> int:
+    args = _init_config_parser().parse_args(argv)
+    output = args.output or Path(f"demetrapy-{args.method}.json")
+    if output.exists() and not args.force:
+        raise ValueError(f"refusing to overwrite existing file: {output}; use --force")
+    config = AdjustmentConfig.template(args.method)
+    config.validate()
+    output.write_text(
+        json.dumps(config.to_dict(omit_empty=True), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Created {args.method} configuration: {output}")
+    return 0
+
+
+def _run_check(argv: Sequence[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="demetrapy check",
+        description="Check whether this environment is ready to run demetrapy.",
+    )
+    parser.parse_args(argv)
+    checks = run_readiness_checks()
+    width = max(len(check.name) for check in checks)
+    for check in checks:
+        print(f"{check.name:<{width}}  {check.status:<7}  {check.detail}")
+        if check.action:
+            print(f"{'':<{width}}           {check.action}")
+    print()
+    if is_ready(checks):
+        print("demetrapy is ready.")
+        return 0
+    print("demetrapy is not ready. Resolve the ERROR items above.")
+    return 2
+
+
 def run(argv: Sequence[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    arguments = list(sys.argv[1:] if argv is None else argv)
     try:
+        if arguments[:1] == ["check"]:
+            return _run_check(arguments[1:])
+        if arguments[:1] == ["validate"]:
+            return _run_validate(arguments[1:])
+        if arguments[:1] == ["init-config"]:
+            return _run_init_config(arguments[1:])
+
+        args = _parser().parse_args(arguments)
         if args.input and args.data:
             raise ValueError("provide the data file either positionally or with --data, not both")
         input_path = args.data or args.input
         if input_path is None:
             raise ValueError("a data file is required; use --data FILE or a positional path")
-        config = AdjustmentConfig.load(args.config)
         overrides = {
             name: getattr(args, name)
             for name in ("method", "spec", "frequency", "date_column", "value_column")
             if getattr(args, name) is not None
         }
-        if overrides:
-            config = replace(config, **overrides)
-        dates, values, user_values = _read_csv(input_path, config)
-        start_year, start_period = _start(dates, config.frequency)
         wants_plot = args.plot or args.plot_output is not None
-        engine_options = config.engine_options(user_values)
-        if wants_plot:
-            engine_options["detailed"] = True
-        engine_result = adjust(
-            values,
-            start_year=start_year,
-            start_period=start_period,
-            **engine_options,
+        dates, engine_result = _execute_csv(
+            input_path,
+            config=args.config,
+            overrides=overrides,
+            output=args.output,
+            audit=args.audit,
+            detailed=wants_plot,
+            adjustment_function=adjust,
         )
-        if isinstance(engine_result, AdjustmentResult):
-            result = {
-                name: list(engine_result.series[f"final.{name}"].values)
-                for name in COMPACT_COMPONENTS
-            }
-        else:
-            result = engine_result
-        if any(len(series) != len(dates) for series in result.values()):
-            raise RuntimeError("JDemetra+ returned an unexpected output length")
-        if args.output:
-            with args.output.open("w", newline="", encoding="utf-8") as stream:
-                _write_csv(stream, dates, result)
-        else:
+        result = engine_result.to_compact_dict()
+        if not args.output:
             _write_csv(sys.stdout, dates, result)
         if wants_plot:
             figure = plot_adjustment(
@@ -145,7 +182,7 @@ def run(argv: Sequence[str] | None = None) -> int:
 
                 plt.show()
         return 0
-    except (ImportError, OSError, ValueError, RuntimeError) as error:
+    except (ImportError, OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
         print(f"demetrapy: {error}", file=sys.stderr)
         return 2
 

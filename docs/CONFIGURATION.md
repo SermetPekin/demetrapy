@@ -2,7 +2,7 @@
 
 This document describes how `demetrapy` configuration maps to JDemetra+
 core 2.2.6. For runnable commands and DataFrame examples, see
-[USAGE.md](USAGE.md).
+[USAGE.md](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md).
 
 ## Processing Order
 
@@ -35,6 +35,16 @@ Nested processing values that are not supplied retain the values from the
 selected JDemetra preset. For example, `method="tramoseats", spec="RSAfull"`
 uses the complete JDemetra `RSAfull` defaults unless individual sections are
 overridden.
+
+Create a starter file and validate it before processing:
+
+```bash
+demetrapy init-config --method x13 --output config.json
+demetrapy validate config.json --data input.csv
+```
+
+Validation checks JSON structure, supported presets, wrong-engine options,
+nested option names, ARIMA orders, and CSV requirements without starting Java.
 
 ## Compatible Groups
 
@@ -139,8 +149,10 @@ TRAMO automodel options:
 
 `pcr`, `ub1`, `ub2`, `cancel`, `tsig`, `pc`, and `ami_compare`.
 
-See [automatic_arima_example.py](examples/automatic_arima_example.py) and
-[full_tramoseats_user_calendar_example.py](examples/full_tramoseats_user_calendar_example.py)
+See
+[03_x13_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/03_x13_models.py)
+and
+[04_tramoseats_models.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/04_tramoseats_models.py)
 for complete executable configurations.
 
 ### Estimation
@@ -236,10 +248,14 @@ TRAMO preprocessing stage.
 
 ## Detailed Results
 
-`detailed=True` changes the returned Python object, not the calculation.
+`detailed=True` changes the information retained, not the calculation or the
+returned Python object.
 
-The compact default returns `y`, `sa`, `t`, `s`, and `i`. Detailed mode returns
-an `AdjustmentResult` containing:
+`adjust()` always returns an `AdjustmentResult` with named primary components.
+`to_compact_dict()` returns the `y`, `ycal`, `sa`, `t`, `s`, and `i`
+compatibility mapping. `forecasts` and `to_forecast_dict()` expose available
+future-domain `y_f`, `ycal_f`, `sa_f`, `t_f`, `s_f`, and `i_f` series.
+Detailed mode additionally populates:
 
 - `series`: all available domain-aware JDemetra time series
 - `diagnostics`: scalar diagnostics
@@ -261,14 +277,15 @@ print(result.arima_model.automatic)
 forecast = result.series["final.sa_f"]
 ```
 
-Detailed DataFrame results expose fitted models by target through
-`result.arima_models[target]`.
+DataFrame results expose per-target details through `result.for_series(target)`;
+for example, `result.for_series(target).arima_model` returns the fitted model.
 
 ## Complete Examples
 
-- [Automatic ARIMA](examples/automatic_arima_example.py)
-- [Explicit ARIMA](examples/explicit_arima_example.py)
-- [X13 versus TRAMO/SEATS](examples/compare_methods.py)
-- [Quarterly X13 versus TRAMO/SEATS](examples/quarterly_example.py)
-- [TRAMO/SEATS with UserDefined calendar](examples/full_tramoseats_user_calendar_example.py)
-- [Retail multi-series case study](examples/RETAIL_CASE_STUDY.md)
+- [Basic X13 and TRAMO/SEATS](https://github.com/SermetPekin/demetrapy/blob/main/examples/01_basic_models.py)
+- [X13 configurations](https://github.com/SermetPekin/demetrapy/blob/main/examples/03_x13_models.py)
+- [TRAMO/SEATS configurations](https://github.com/SermetPekin/demetrapy/blob/main/examples/04_tramoseats_models.py)
+- [Quarterly models](https://github.com/SermetPekin/demetrapy/blob/main/examples/05_quarterly_models.py)
+- [UserDefined calendars](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py)
+- [Method comparison](https://github.com/SermetPekin/demetrapy/blob/main/examples/07_compare_methods.py)
+- [Advanced TRAMO/SEATS](https://github.com/SermetPekin/demetrapy/blob/main/examples/08_advanced_tramoseats.py)

@@ -44,13 +44,14 @@ class SyntheticSeasonalityTest(unittest.TestCase):
                     method=method,
                     spec="RSA4",
                 )
+                adjusted_values = result.seasonally_adjusted.values
                 adjusted_rmse = _rmse(
-                    [result["sa"][index] for index in interior],
+                    [adjusted_values[index] for index in interior],
                     [expected_adjusted[index] for index in interior],
                 )
                 recovered_pattern = _monthly_means(
                     [
-                        observations[index] - result["sa"][index]
+                        observations[index] - adjusted_values[index]
                         for index in interior
                     ],
                     [index % 12 for index in interior],
@@ -128,11 +129,11 @@ class SyntheticSeasonalityTest(unittest.TestCase):
                 )
                 expected_interior = [expected_adjusted[index] for index in interior]
                 selected_rmse = _rmse(
-                    [selected["sa"][index] for index in interior],
+                    [selected.seasonally_adjusted.values[index] for index in interior],
                     expected_interior,
                 )
                 unselected_rmse = _rmse(
-                    [unselected["sa"][index] for index in interior],
+                    [unselected.seasonally_adjusted.values[index] for index in interior],
                     expected_interior,
                 )
 

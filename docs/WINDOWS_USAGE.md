@@ -4,7 +4,7 @@
 
 Install 64-bit versions of:
 
-- Python 3.9 or newer from [python.org](https://www.python.org/downloads/windows/)
+- Python 3.11 or newer from [python.org](https://www.python.org/downloads/windows/)
 - Java 8 or newer; Java 11 is recommended
 - Git, if installing from a cloned repository
 
@@ -29,6 +29,7 @@ py -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e .
 demetrapy --help
+demetrapy check
 ```
 
 ## Automatic JAR Download
@@ -112,14 +113,14 @@ set DEMETRAPY_JAR=
 ## Run an Adjustment
 
 ```bat
-demetrapy .\input.csv --config .\examples\config.json --output .\adjusted.csv
+demetrapy .\input.csv --config .\examples\configs\x13_basic.json --output .\adjusted.csv
 ```
 
 For the advanced TRAMO/SEATS configuration, the input CSV must include the
 `promotion` column referenced by the example:
 
 ```bat
-demetrapy .\input.csv --config .\examples\full_config.json --output .\adjusted.csv
+demetrapy .\input.csv --config .\examples\configs\tramoseats_full.json --output .\adjusted.csv
 ```
 
 The Python API works identically on Windows:
@@ -134,7 +135,7 @@ result = adjust(
     method="tramoseats",
     spec="RSA4",
 )
-print(result["sa"])
+print(result.seasonally_adjusted.values)
 ```
 
 ## Test the Installation
@@ -144,6 +145,10 @@ python -m unittest discover -s tests
 ```
 
 ## Troubleshooting
+
+Run `demetrapy check` first. It reports Java discovery, Python/Java architecture
+compatibility, and the configured or cached JDemetra+ JAR without downloading
+or changing anything.
 
 - `DEMETRAPY_JAR does not point to a file`: verify the full path, filename,
   and `.jar` extension. Remove the override to return to automatic downloading.

@@ -2,7 +2,12 @@ import unittest
 
 import pandas as pd
 
-from demetrapy import AdjustmentResult, OutputSeries, plot_adjustment_interactive
+from demetrapy import (
+    AdjustmentComponents,
+    AdjustmentResult,
+    OutputSeries,
+    plot_adjustment_interactive,
+)
 
 
 class InteractivePlotTest(unittest.TestCase):
@@ -10,6 +15,11 @@ class InteractivePlotTest(unittest.TestCase):
         observed = OutputSeries(tuple(float(value) for value in range(24)), "Monthly", 2020, 1)
         forecast = OutputSeries(tuple(float(value) for value in range(12)), "Monthly", 2022, 1)
         result = AdjustmentResult(
+            components=AdjustmentComponents(
+                observed, observed, observed, observed, observed, observed
+            ),
+            method="x13",
+            specification="RSA4",
             series={
                 **{
                     f"final.{name}": observed
@@ -22,8 +32,6 @@ class InteractivePlotTest(unittest.TestCase):
             },
             diagnostics={},
             messages=(),
-            method="x13",
-            specification="RSA4",
         )
 
         figure = plot_adjustment_interactive(result, title="Sales")

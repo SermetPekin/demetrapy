@@ -2,14 +2,15 @@
 
 For a consolidated description of processing stages, compatible configuration
 groups, defaults, and every supported ARIMA/X11/SEATS option, see the
-[configuration reference](CONFIGURATION.md).
+[configuration reference](https://github.com/SermetPekin/demetrapy/blob/main/docs/CONFIGURATION.md).
 
 ## Installation
 
-`demetrapy` requires Python 3.9+ and Java 8+.
+`demetrapy` requires Python 3.11+ and Java 8+.
 
 For Command Prompt, proxy-restricted networks, and manual JAR installation, see
-the [Windows usage guide](WINDOWS_USAGE.md).
+the
+[Windows usage guide](https://github.com/SermetPekin/demetrapy/blob/main/docs/WINDOWS_USAGE.md).
 
 ```bash
 python -m venv .venv
@@ -21,7 +22,16 @@ Confirm that the command is available:
 
 ```bash
 demetrapy --help
+demetrapy check
 ```
+
+`demetrapy check` reports Python, JPype, Java, architecture compatibility, and
+JDemetra+ JAR readiness. It does not start the JVM, access the network, or
+modify the cache. `WARNING` items do not block processing; `ERROR` items return
+exit code `2` and include a corrective action.
+
+For the shortest end-to-end path, use the
+[five-minute quickstart](https://github.com/SermetPekin/demetrapy/blob/main/docs/QUICKSTART.md).
 
 On its first adjustment, the package downloads JDemetra+ core 2.2.6 from
 Maven Central and caches it in `~/.cache/demetrapy`. No JAR configuration is
@@ -54,6 +64,47 @@ Rows must be in chronological order. Supported frequencies are `Monthly`,
 `Quarterly`, `HalfYearly`, and `Yearly`. The first date determines the starting
 period.
 
+### Quarterly and Other Frequencies
+
+Frequency handling depends on the input API:
+
+| Input | Must frequency be supplied? |
+| --- | --- |
+| `adjust_dataframe()` | No. It is inferred from the regular `DatetimeIndex`. |
+| `adjust_csv()` without JSON/legacy config | No. It is inferred from regular ISO dates. |
+| CLI without `--config` | No. It is inferred from regular ISO dates. |
+| `adjust()` with a value sequence | Yes, unless monthly. Pass `frequency="Quarterly"`. |
+| JSON or `AdjustmentConfig` | It must contain the correct frequency and match dated input. |
+
+Method-specific `X13Config` and `TramoSeatsConfig` objects contain model
+settings, not data frequency. They follow the frequency inferred by
+`adjust_dataframe()` and `adjust_csv()`. For a raw sequence, supply frequency
+to `adjust()`:
+
+```python
+from demetrapy import X13Config, adjust, adjust_dataframe
+
+# Quarterly DatetimeIndex: frequency is inferred.
+frame_result = adjust_dataframe(quarterly_frame, config=X13Config())
+
+# No dates are available: frequency and starting quarter are explicit.
+sequence_result = adjust(
+  quarterly_values,
+  frequency="Quarterly",
+  start_year=2020,
+  start_period=1,
+  config=X13Config(),
+)
+```
+
+For CSV processing, at least two dates are required for inference. A mismatch
+such as quarterly dates with `"frequency": "Monthly"` is rejected before Java
+starts. Run the complete comparison with:
+
+```bash
+python examples/05_quarterly_models.py
+```
+
 ## Basic Command
 
 Run an X13 adjustment with the default monthly `RSA4` specification:
@@ -77,7 +128,7 @@ demetrapy input.csv
 Use `--config` or `-c` to provide adjustment settings:
 
 ```bash
-demetrapy input.csv --config examples/config.json --output adjusted.csv
+demetrapy input.csv --config examples/configs/x13_basic.json --output adjusted.csv
 ```
 
 The fully named equivalent is:
@@ -85,7 +136,7 @@ The fully named equivalent is:
 ```bash
 demetrapy \
   --data input.csv \
-  --config examples/config.json \
+  --config examples/configs/x13_basic.json \
   --output adjusted.csv
 ```
 
@@ -97,6 +148,7 @@ demetrapy \
 | `--data FILE` | `-d` | Explicit CSV data file |
 | `--config FILE` | `-c` | JSON adjustment configuration |
 | `--output FILE` | `-o` | Output CSV; defaults to standard output |
+| `--audit DIRECTORY` | | Write an audit manifest and append-only run history |
 | `--method METHOD` | | `x13` or `tramoseats` |
 | `--spec NAME` | | JDemetra+ preset such as `RSA4` or `RSAfull` |
 | `--frequency NAME` | | `Monthly`, `Quarterly`, `HalfYearly`, or `Yearly` |
@@ -135,7 +187,7 @@ Override only the method and preset from an existing configuration:
 ```bash
 demetrapy \
   --data input.csv \
-  --config examples/config.json \
+  --config examples/configs/x13_basic.json \
   --method tramoseats \
   --spec RSA5 \
   --output adjusted.csv
@@ -144,7 +196,7 @@ demetrapy \
 Write CSV to standard output for use in a pipeline:
 
 ```bash
-demetrapy --data input.csv --config examples/config.json
+demetrapy --data input.csv --config examples/configs/x13_basic.json
 ```
 
 Paths containing spaces should be quoted:
@@ -155,6 +207,92 @@ demetrapy --data "data/monthly sales.csv" --output "results/adjusted sales.csv"
 
 The CLI processes one value column per invocation. Use `adjust_dataframe()`
 from Python to process multiple target columns in one call.
+
+### Validate Before Processing
+
+Validate JSON structure, method-specific options, and preset compatibility
+without starting Java:
+
+```bash
+demetrapy validate config.json
+```
+
+Include a data file to also check required columns, numeric values, and the
+first date:
+
+```bash
+demetrapy validate config.json --data input.csv
+```
+
+Write a normalized configuration containing explicit defaults for audit or
+review:
+
+```bash
+demetrapy validate config.json --output normalized.json
+```
+
+### Create a Starter Configuration
+
+Generate a validated template for either engine:
+
+```bash
+demetrapy init-config --method x13 --output x13.json
+demetrapy init-config --method tramoseats --output tramoseats.json
+```
+
+Existing files are protected. Pass `--force` only when replacement is intended.
+
+### Audit Records
+
+Audit recording is opt-in and does not change processing results:
+
+```bash
+demetrapy input.csv --config config.json --output adjusted.csv --audit audit/
+```
+
+Each attempt writes a uniquely named JSON manifest and appends the same object
+to `audit/runs.jsonl`. Successful records include normalized configuration,
+package and engine versions, input/configuration/output SHA-256 hashes,
+diagnostics, processing messages, fitted ARIMA metadata, row count, and period
+range. Failed attempts include the exception type and message, then return the
+normal nonzero CLI status.
+
+Records use `audit_schema_version` for compatibility checks. They contain file
+names rather than absolute paths and never include source observations,
+environment variables, usernames, or credentials. Inline user-variable values
+are replaced by their count and SHA-256 hash.
+
+## Toy Datasets and Recipes
+
+Deterministic synthetic datasets are included for experimentation:
+
+```python
+from demetrapy import load_monthly_retail, load_quarterly_production
+
+monthly = load_monthly_retail()
+quarterly = load_quarterly_production()
+```
+
+Run the copy-ready model recipes from the repository root:
+
+```bash
+python examples/01_basic_models.py
+python examples/02_detailed_results.py
+python examples/03_x13_models.py
+python examples/04_tramoseats_models.py
+python examples/05_quarterly_models.py
+python examples/06_calendar_variables.py
+python examples/07_compare_methods.py
+python examples/08_advanced_tramoseats.py
+python examples/09_bulk_processing_audit.py
+python examples/10_csv_workflow.py
+```
+
+Each method-specific recipe applies several configurations to the same input,
+so differences are attributable to model settings rather than different toy
+data. See
+[the example catalog](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md)
+for the dataset contents and the configuration covered by each script.
 
 ## Plotting
 
@@ -167,7 +305,7 @@ seasonal, irregular, configured forecasts, and active effects:
 ```bash
 demetrapy \
   --data input.csv \
-  --config examples/config.json \
+  --config examples/configs/x13_basic.json \
   --output adjusted.csv \
   --plot-output adjustment.png
 ```
@@ -205,7 +343,8 @@ hover values, zooming, panning, and legend toggles. Processing still uses the
 same in-memory JDemetra+ engine and does not create workspace XML.
 
 Ready-to-upload files and the exact selections are provided in the
-[dashboard example directory](examples/dashboard/README.md). The fixture set
+[dashboard example directory](https://github.com/SermetPekin/demetrapy/blob/main/examples/dashboard/README.md).
+The fixture set
 includes a multi-series CSV, a wider calendar pool, and separate X13 and
 TRAMO/SEATS configurations with forecasts.
 
@@ -250,7 +389,8 @@ objects. Every key is optional.
 | `benchmarking` | `false` | Enable JDemetra+ benchmarking |
 
 The flat X11 options apply only to `method: "x13"`. See
-[`examples/full_config.json`](examples/full_config.json) for a complete
+[`examples/configs/tramoseats_full.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/tramoseats_full.json)
+for a complete
 TRAMO/SEATS example with calendar and regression variables.
 
 ### Preprocessing and SEATS
@@ -291,19 +431,21 @@ seven fields when the model must be fully reproducible independent of preset.
 
 The same object can be passed as `preprocessing=` to `adjust()` or
 `adjust_dataframe()`. See
-[`examples/arima_config.json`](examples/arima_config.json) for a runnable CLI
+[`examples/configs/x13_explicit_arima.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/x13_explicit_arima.json)
+for a runnable CLI
 configuration. The dashboard exposes the same choice under **ARIMA model**.
 
 Runnable Python examples are available for both modes:
 
 ```bash
-python examples/automatic_arima_example.py
-python examples/explicit_arima_example.py
+python examples/03_x13_models.py
+python examples/04_tramoseats_models.py
 ```
 
 For CLI configuration, use
-[`examples/automatic_arima_config.json`](examples/automatic_arima_config.json)
-or [`examples/arima_config.json`](examples/arima_config.json).
+[`examples/configs/x13_automatic_arima.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/x13_automatic_arima.json)
+or
+[`examples/configs/x13_explicit_arima.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/x13_explicit_arima.json).
 
 Detailed results report the fitted model, including the orders selected by
 automodel:
@@ -319,21 +461,13 @@ print(result.arima_model.notation)
 print(result.arima_model.automatic)
 ```
 
-For a detailed DataFrame result, each target has an entry in
-`result.arima_models`.
+For a DataFrame result, use `result.for_series(target).arima_model`.
 
-For a complete TRAMO/SEATS example with all explicit ARIMA fields, every
-supported TRAMO transform and estimation option, a separate UserDefined
-calendar pool, outlier detection, and all SEATS controls, run:
-
-```bash
-python examples/full_tramoseats_user_calendar_example.py
-python examples/full_tramoseats_user_calendar_example.py --auto-model
-```
-
-The default run includes every explicit ARIMA order field. `--auto-model`
-replaces those orders with every supported TRAMO automodel control; the two
-modes are intentionally mutually exclusive.
+The complete CLI configuration in
+[`examples/configs/tramoseats_full.json`](https://github.com/SermetPekin/demetrapy/blob/main/examples/configs/tramoseats_full.json)
+covers explicit ARIMA fields, TRAMO transform and estimation options, outlier
+detection, and SEATS controls. UserDefined calendar handling is demonstrated in
+[`examples/06_calendar_variables.py`](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py).
 
 `outlier_detection.types` accepts `AO`, `LS`, `TC`, and `SO`, with optional
 `critical_value` and `tc_rate`. For TRAMO/SEATS, `seats` accepts decomposition
@@ -385,7 +519,7 @@ estimating it.
   ],
   "outliers": [{"type": "AO", "date": "2020-04-01"}],
   "interventions": [
-    {
+    seasonally_adjusted = result.seasonally_adjusted.values
       "name": "closure",
       "sequences": [{"start": "2020-03-01", "end": "2020-05-31"}]
     }
@@ -434,6 +568,90 @@ date,y,sa,t,s,i
 
 ## Python API
 
+### CSV Files
+
+`adjust_csv()` applies the same single-series CSV and configuration rules as
+the command line. It returns an `AdjustmentResult`; `output` is optional.
+
+### Choose a Configuration Style
+
+All three styles below describe the same X13 run. Use one style per call.
+
+| Style | Choose it when |
+| --- | --- |
+| `X13Config` or `TramoSeatsConfig` | Python discoverability and reuse matter |
+| Direct keywords | the configuration is short and used once |
+| JSON file | configuration must be reviewed, stored, or shared with the CLI |
+
+**Method-specific object:**
+
+```python
+from demetrapy import X13Config, adjust_csv
+
+config = X13Config(spec="RSA4", forecast_horizon=12)
+result = adjust_csv(
+  "monthly_sales.csv",
+  config=config,
+  output="monthly_sales_adjusted.csv",
+)
+```
+
+**Direct keywords:**
+
+```python
+from demetrapy import adjust_csv
+
+result = adjust_csv(
+  "monthly_sales.csv",
+  method="x13",
+  spec="RSA4",
+  forecast_horizon=12,
+  output="monthly_sales_adjusted.csv",
+)
+```
+
+**JSON file:**
+
+```python
+from demetrapy import adjust_csv
+
+result = adjust_csv(
+  "monthly_sales.csv",
+  config="x13.json",
+  output="monthly_sales_adjusted.csv",
+  audit="audit/",
+  detailed=True,
+)
+print(result.arima_model.notation)
+```
+
+`X13Config` and `TramoSeatsConfig` expose only options supported by their
+respective engines. They can be reused with `adjust()`, `adjust_csv()`, and
+`adjust_dataframe()`:
+
+```python
+from demetrapy import TramoSeatsConfig, X13Config, adjust, adjust_dataframe
+
+x13 = X13Config(
+  spec="RSA4",
+  seasonal_filter="S3X5",
+  forecast_horizon=12,
+)
+tramoseats = TramoSeatsConfig(
+  spec="RSAfull",
+  seats={"prediction_length": 12},
+)
+
+x13_result = adjust(values, start_year=2019, config=x13)
+tramoseats_result = adjust_dataframe(frame, config=tramoseats)
+```
+
+Calling `to_adjustment_config()` returns the normalized `AdjustmentConfig`,
+and `to_dict()` produces the same serializable structure used by JSON files.
+Do not combine `config=` with model-setting keywords; conflicting values are
+rejected. Existing keyword calls, JSON files, and `AdjustmentConfig` remain
+fully supported.
+
 The same engine can be called directly. `start_period` is one-based, so January
 or the first quarter is `1`.
 
@@ -449,13 +667,50 @@ result = adjust(
     spec="RSA4",
 )
 
-seasonally_adjusted = result["sa"]
+seasonally_adjusted = result.seasonally_adjusted.values
 ```
 
 ### Detailed Results
 
-The default result remains the five primary component lists. Set
-`detailed=True` to receive an `AdjustmentResult` containing:
+For a DataFrame result, historical and forecast outputs are available without
+parsing raw JDemetra keys:
+
+```python
+from demetrapy import TramoSeatsConfig, adjust_dataframe
+
+result = adjust_dataframe(
+  frame,
+  config=TramoSeatsConfig(
+    spec="RSAfull",
+    seats={"prediction_length": 12},
+  ),
+  detailed=True,
+)
+
+history = result.components
+compact_history = result.to_compact_frame()             # y, ycal, sa, t, s, i
+forecasts = result.to_forecast_frame()                   # readable names
+compact_forecasts = result.to_forecast_frame(compact=True)  # y_f, ..., i_f
+combined = result.to_combined_frame(compact=True)        # y, ..., i over both domains
+
+sales_sa = combined[("sales", "sa")]
+```
+
+`to_forecast_frame()` uses the forecast series' own future date domain.
+`to_combined_frame()` vertically appends those future rows to history and is
+the convenient form for plotting or exporting one complete component. These
+helpers do not require `detailed=True`; detailed mode is only needed for raw
+series, diagnostics, messages, and fitted model metadata. A complete runnable
+TRAMO/SEATS workflow is in
+[`examples/02_detailed_results.py`](https://github.com/SermetPekin/demetrapy/blob/main/examples/02_detailed_results.py).
+
+`adjust()` always returns an `AdjustmentResult`. Its named component
+attributes are available at every detail level, and `to_compact_dict()`
+provides the `y`, `ycal`, `sa`, `t`, `s`, and `i` compatibility mapping.
+`result.forecasts` exposes domain-aware forecasts, and
+`result.to_forecast_dict()` provides the available `y_f`, `ycal_f`, `sa_f`,
+`t_f`, `s_f`, and `i_f` values. A zero forecast horizon produces no forecast
+entries. Set `detailed=True` to additionally populate:
 
 | Attribute | Content |
 | --- | --- |
@@ -512,7 +767,7 @@ result = adjust(
 
 ### User-Defined Calendar DataFrame
 
-[The DataFrame variable-pool example](examples/dataframe_user_variables_example.py)
+[The DataFrame variable-pool example](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py)
 keeps target series and precomputed calendar weights in separate DataFrames.
 The calendar pool may begin before and end after the targets. A dictionary maps
 each target column to the pool columns it uses:
@@ -542,14 +797,18 @@ JDemetra+'s in-memory `ProcessingContext`. All pool columns are registered, but
 only mapped columns enter each target's trading-day specification. Unmapped
 targets use no user-defined calendar regressors.
 
-The result has two-level columns `(series, component)`, where each target has
-`y`, `sa`, `t`, `s`, and `i`. This path bypasses JDemetra+ workspace XML; no
-workspace file is generated or interpreted.
+The returned `DataFrameAdjustmentResult.components` has two-level columns
+`(series, component)`, where each target has `observed`,
+`calendar_adjusted`, `seasonally_adjusted`, `trend`, `seasonal`, and
+`irregular`. `to_compact_frame()` provides the `y`, `ycal`, `sa`, `t`, `s`,
+and `i` aliases. Per-target forecasts are available through
+`result.for_series(target).forecasts`. This path bypasses JDemetra+ workspace
+XML; no workspace file is generated or interpreted.
 
-Set `detailed=True` to receive a `DataFrameAdjustmentResult`. Its `series`
-attribute is one DataFrame containing every JDemetra time-series output, with
-columns `(target, output)`. Diagnostics and messages are mappings keyed by
-target column:
+`adjust_dataframe()` always returns the same wrapper. With `detailed=True`,
+its `detailed_series` attribute contains every JDemetra time-series output,
+with columns `(target, output)`. Use `for_series(target)` for that target's
+diagnostics, messages, and fitted model:
 
 ```python
 detailed = adjust_dataframe(
@@ -559,9 +818,9 @@ detailed = adjust_dataframe(
   detailed=True,
 )
 
-sa = detailed.series[("sales", "final.sa")].dropna()
-sa_forecast = detailed.series[("sales", "final.sa_f")].dropna()
-sales_diagnostics = detailed.diagnostics["sales"]
+sa = detailed.detailed_series[("sales", "final.sa")].dropna()
+sa_forecast = detailed.detailed_series[("sales", "final.sa_f")].dropna()
+sales_diagnostics = detailed.for_series("sales").diagnostics
 ```
 
 Because every output keeps its own domain, the DataFrame uses the union of all
@@ -581,9 +840,15 @@ result = adjust(
     forecast_horizon=-1,
     benchmarking=True,
 )
-```
+For a DataFrame result, use `result.for_series(target).arima_model`.
 
 ## Troubleshooting
+
+Start with the environment readiness report:
+
+```bash
+demetrapy check
+```
 
 - `CSV must contain columns`: set `date_column` and `value_column` to match the
   CSV header.

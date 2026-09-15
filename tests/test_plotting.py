@@ -8,7 +8,7 @@ os.environ.setdefault("MPLBACKEND", "Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from demetrapy import AdjustmentResult, OutputSeries, plot_adjustment
+from demetrapy import AdjustmentComponents, AdjustmentResult, OutputSeries, plot_adjustment
 
 
 class PlottingTest(unittest.TestCase):
@@ -40,6 +40,11 @@ class PlottingTest(unittest.TestCase):
         forecast = OutputSeries(tuple(float(value) for value in range(12)), "Monthly", 2022, 1)
         effect = OutputSeries(tuple(float(value % 2) for value in range(24)), "Monthly", 2020, 1)
         result = AdjustmentResult(
+            components=AdjustmentComponents(
+                observed, observed, observed, observed, observed, observed
+            ),
+            method="x13",
+            specification="RSA4",
             series={
                 "final.y": observed,
                 "final.sa": observed,
@@ -51,8 +56,6 @@ class PlottingTest(unittest.TestCase):
             },
             diagnostics={},
             messages=(),
-            method="x13",
-            specification="RSA4",
         )
 
         figure = plot_adjustment(result)

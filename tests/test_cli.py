@@ -1,4 +1,6 @@
 import csv
+from contextlib import redirect_stderr
+from io import StringIO
 import json
 import tempfile
 import unittest
@@ -7,7 +9,33 @@ from unittest.mock import patch
 
 from demetrapy.cli import run
 from demetrapy.config import AdjustmentConfig
-from demetrapy.engine import AdjustmentResult, OutputSeries
+from demetrapy.engine import AdjustmentComponents, AdjustmentResult, OutputSeries
+from demetrapy.readiness import ReadinessCheck
+
+
+
+def adjustment_result(values_by_component, *, detailed=False):
+    outputs = {
+        name: OutputSeries(tuple(values), "Monthly", 2024, 1)
+        for name, values in values_by_component.items()
+    }
+    return AdjustmentResult(
+        components=AdjustmentComponents(
+            observed=outputs["y"],
+            calendar_adjusted=outputs["ycal"],
+            seasonally_adjusted=outputs["sa"],
+            trend=outputs["t"],
+            seasonal=outputs["s"],
+            irregular=outputs["i"],
+        ),
+        method="x13",
+        specification="RSA4",
+        series={f"final.{name}": output for name, output in outputs.items()}
+        if detailed
+        else {},
+        diagnostics={},
+        messages=(),
+    )
 
 
 class ConfigTest(unittest.TestCase):
@@ -32,17 +60,198 @@ class ConfigTest(unittest.TestCase):
 
         self.assertEqual(variables, [{"name": "promotion", "values": [0.0, 1.0]}])
 
+    def test_templates_are_valid(self) -> None:
+        for method in ("x13", "tramoseats"):
+            config = AdjustmentConfig.template(method)
+            config.validate()
+            self.assertEqual(config.method, method)
+
+    def test_rejects_wrong_method_options_without_starting_java(self) -> None:
+        with self.assertRaisesRegex(ValueError, "X11 options"):
+            AdjustmentConfig(
+                method="tramoseats", forecast_horizon=12
+            ).validate()
+        with self.assertRaisesRegex(ValueError, "seats options"):
+            AdjustmentConfig(seats={"prediction_length": 12}).validate()
+
+    def test_rejects_invalid_specification_and_nested_options(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported x13 specification"):
+            AdjustmentConfig(spec="RSAfull").validate()
+        with self.assertRaisesRegex(ValueError, "preprocessing sections"):
+            AdjustmentConfig(preprocessing={"unknown": {}}).validate()
+
 
 class CliTest(unittest.TestCase):
     @patch("demetrapy.cli.adjust")
+    def test_processing_infers_quarterly_frequency_without_config(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result(
+            {name: [10.0, 20.0] for name in ("y", "ycal", "sa", "t", "s", "i")}
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "quarterly.csv"
+            output_path = root / "output.csv"
+            data_path.write_text(
+                "date,value\n2024-04-01,10\n2024-07-01,20\n",
+                encoding="utf-8",
+            )
+
+            exit_code = run(
+                [str(data_path), "--output", str(output_path)]
+            )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(mock_adjust.call_args.kwargs["frequency"], "Quarterly")
+        self.assertEqual(mock_adjust.call_args.kwargs["start_period"], 2)
+
+    def test_validate_rejects_frequency_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config_path = root / "config.json"
+            data_path = root / "quarterly.csv"
+            config_path.write_text(
+                json.dumps({"frequency": "Monthly"}),
+                encoding="utf-8",
+            )
+            data_path.write_text(
+                "date,value\n2023-01-01,10\n2023-04-01,20\n",
+                encoding="utf-8",
+            )
+
+            error_output = StringIO()
+            with redirect_stderr(error_output):
+                exit_code = run(
+                    ["validate", str(config_path), "--data", str(data_path)]
+                )
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("CSV dates are Quarterly", error_output.getvalue())
+
+    @patch("demetrapy.cli.adjust")
+    def test_audit_option_writes_manifest(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result(
+            {name: [10.0, 20.0] for name in ("y", "ycal", "sa", "t", "s", "i")}
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "input.csv"
+            output_path = root / "output.csv"
+            audit_path = root / "audit"
+            input_path.write_text("date,value\n2024-01-01,10\n2024-02-01,20\n")
+
+            exit_code = run(
+                [
+                    str(input_path),
+                    "--output",
+                    str(output_path),
+                    "--audit",
+                    str(audit_path),
+                ]
+            )
+
+            manifest = json.loads(next(audit_path.glob("*.json")).read_text())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(manifest["status"], "success")
+
+    @patch("demetrapy.cli.run_readiness_checks")
+    def test_check_reports_ready_environment(self, mock_checks) -> None:
+        mock_checks.return_value = (
+            ReadinessCheck("Python", "OK", "3.11 (64-bit)"),
+            ReadinessCheck("Java", "OK", "17 (aarch64)"),
+        )
+
+        self.assertEqual(run(["check"]), 0)
+
+    @patch("demetrapy.cli.run_readiness_checks")
+    def test_check_returns_two_for_blocking_error(self, mock_checks) -> None:
+        mock_checks.return_value = (
+            ReadinessCheck(
+                "Java",
+                "ERROR",
+                "not found",
+                "Install Java 8 or later.",
+            ),
+        )
+
+        self.assertEqual(run(["check"]), 2)
+
+    def test_validates_config_without_running_adjustment(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "config.json"
+            normalized_path = Path(directory) / "normalized.json"
+            config_path.write_text(
+                json.dumps({"method": "x13", "spec": "RSA4"}),
+                encoding="utf-8",
+            )
+
+            with patch("demetrapy.cli.adjust") as mock_adjust:
+                exit_code = run(
+                    ["validate", str(config_path), "--output", str(normalized_path)]
+                )
+
+            normalized = json.loads(normalized_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(normalized["frequency"], "Monthly")
+        mock_adjust.assert_not_called()
+
+    def test_validate_rejects_wrong_method_options(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "method": "tramoseats",
+                        "spec": "RSA4",
+                        "forecast_horizon": 12,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(run(["validate", str(config_path)]), 2)
+
+    def test_init_config_writes_valid_template_and_protects_existing_file(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "x13.json"
+
+            self.assertEqual(
+                run(
+                    [
+                        "init-config",
+                        "--method",
+                        "x13",
+                        "--output",
+                        str(output_path),
+                    ]
+                ),
+                0,
+            )
+            config = AdjustmentConfig.load(output_path)
+            second_exit_code = run(
+                [
+                    "init-config",
+                    "--method",
+                    "x13",
+                    "--output",
+                    str(output_path),
+                ]
+            )
+
+        self.assertEqual(config.method, "x13")
+        self.assertEqual(second_exit_code, 2)
+
+    @patch("demetrapy.cli.adjust")
     def test_writes_adjusted_csv(self, mock_adjust) -> None:
-        mock_adjust.return_value = {
+        mock_adjust.return_value = adjustment_result({
             "y": [10.0, 20.0],
+            "ycal": [10.0, 20.0],
             "sa": [11.0, 19.0],
             "t": [12.0, 18.0],
             "s": [-1.0, 1.0],
             "i": [-1.0, 1.0],
-        }
+        })
         with tempfile.TemporaryDirectory() as directory:
             input_path = Path(directory) / "input.csv"
             output_path = Path(directory) / "output.csv"
@@ -53,8 +262,11 @@ class CliTest(unittest.TestCase):
                 rows = list(csv.reader(stream))
 
         self.assertEqual(exit_code, 0)
-        self.assertEqual(rows[0], ["date", "y", "sa", "t", "s", "i"])
-        self.assertEqual(rows[1], ["2024-01-01", "10.0", "11.0", "12.0", "-1.0", "-1.0"])
+        self.assertEqual(rows[0], ["date", "y", "ycal", "sa", "t", "s", "i"])
+        self.assertEqual(
+            rows[1],
+            ["2024-01-01", "10.0", "10.0", "11.0", "12.0", "-1.0", "-1.0"],
+        )
         mock_adjust.assert_called_once_with(
             [10.0, 20.0],
             start_year=2024,
@@ -89,9 +301,12 @@ class CliTest(unittest.TestCase):
 
     @patch("demetrapy.cli.adjust")
     def test_named_data_and_cli_options_override_config(self, mock_adjust) -> None:
-        mock_adjust.return_value = {
-            name: [10.0, 20.0] for name in ("y", "sa", "t", "s", "i")
-        }
+        mock_adjust.return_value = adjustment_result(
+            {
+                name: [10.0, 20.0]
+                for name in ("y", "ycal", "sa", "t", "s", "i")
+            }
+        )
         with tempfile.TemporaryDirectory() as directory:
             data_path = Path(directory) / "quarterly.csv"
             config_path = Path(directory) / "config.json"
@@ -133,15 +348,12 @@ class CliTest(unittest.TestCase):
     @patch("demetrapy.cli.plot_adjustment")
     @patch("demetrapy.cli.adjust")
     def test_plot_output_uses_detailed_result(self, mock_adjust, mock_plot) -> None:
-        output_series = OutputSeries((10.0, 20.0), "Monthly", 2024, 1)
-        mock_adjust.return_value = AdjustmentResult(
-            series={
-                f"final.{name}": output_series for name in ("y", "sa", "t", "s", "i")
+        mock_adjust.return_value = adjustment_result(
+            {
+                name: [10.0, 20.0]
+                for name in ("y", "ycal", "sa", "t", "s", "i")
             },
-            diagnostics={},
-            messages=(),
-            method="x13",
-            specification="RSA4",
+            detailed=True,
         )
         with tempfile.TemporaryDirectory() as directory:
             input_path = Path(directory) / "input.csv"

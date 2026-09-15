@@ -4,3 +4,9 @@ __pycache__/
 .pytest_cache/
 dist/
 build/
+adjusted_dataframe.csv
+detailed_dataframe.csv
+forecast_dataframe.csv
+method_comparison.csv
+bulk_run_output/
+csv_workflow_output/

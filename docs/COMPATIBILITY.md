@@ -2,7 +2,7 @@
 
 ## Runtime Support
 
-`demetrapy` supports Python 3.9 or newer and requires a same-architecture
+`demetrapy` supports Python 3.11 or newer and requires a same-architecture
 Java runtime. JDemetra+ core is pinned to `demetra-tstoolkit` 2.2.6 so an
 upstream release cannot silently change calculations.
 
@@ -10,10 +10,9 @@ The continuous-integration matrix exercises these representative combinations:
 
 | Operating system | Python | Java |
 | --- | --- | --- |
-| Ubuntu | 3.9 | Temurin 11 |
+| Ubuntu | 3.11 | Temurin 11 |
 | Ubuntu | 3.13 | Temurin 17 |
-| Windows | 3.11 | Temurin 11 |
-| macOS | 3.12 | Temurin 11 |
+| Windows | 3.14 | Temurin 11 |
 
 Other Python and Java versions within the documented ranges may work, but a
 combination is considered verified only after it passes CI. Python and Java
@@ -21,23 +20,39 @@ must both be 64-bit or both be 32-bit.
 
 ## Result Contract
 
-`RESULT_SCHEMA_VERSION` is currently `1`. The compact result returned by
-`adjust()` contains `COMPACT_COMPONENTS` in this stable order:
+`RESULT_SCHEMA_VERSION` is currently `2`. `adjust()` always returns an
+`AdjustmentResult`; `adjust_dataframe()` always returns a
+`DataFrameAdjustmentResult`. The `detailed` option controls the amount of
+retained information, not the Python return type.
+
+`AdjustmentResult.components` exposes readable names (`observed`,
+`calendar_adjusted`, `seasonally_adjusted`, `trend`, `seasonal`, and
+`irregular`). Its
+`to_compact_dict()` compatibility view contains `COMPACT_COMPONENTS` in this
+stable order:
 
 1. `y`: original series
-2. `sa`: seasonally adjusted series
-3. `t`: trend
-4. `s`: seasonal component
-5. `i`: irregular component
+2. `ycal`: calendar-adjusted series
+3. `sa`: seasonally adjusted series
+4. `t`: trend
+5. `s`: seasonal component
+6. `i`: irregular component
 
-The compact mapping and its component meanings are public API. Removing,
-renaming, reordering, or changing the meaning of these fields requires a schema
-version increase and a major package release.
+Forecasts have a different domain and therefore are not columns in the
+historical compact result. `AdjustmentResult.forecasts` exposes named forecast
+series, while `to_forecast_dict()` returns available `FORECAST_COMPONENTS`:
+`y_f`, `ycal_f`, `sa_f`, `t_f`, `s_f`, and `i_f`. Forecast entries are absent
+when their configured horizon is zero.
 
-With `detailed=True`, the `AdjustmentResult` fields and `OutputSeries` domain
-metadata are public API. `AdjustmentResult.arima_model` reports the fitted
-orders, seasonal period, mean setting, and automatic-selection state. Keys
-inside `AdjustmentResult.series` and
+`DataFrameAdjustmentResult.components` uses `(series, component)` columns and
+the same readable component names. `to_compact_frame()` returns the short
+aliases. Both compatibility views and their component meanings are public API.
+
+With `detailed=True`, `AdjustmentResult.series` is populated and
+`DataFrameAdjustmentResult.detailed_series` contains the aligned detailed
+outputs. Per-target metadata is available through `for_series(target)`.
+`AdjustmentResult.arima_model` reports the fitted orders, seasonal period,
+mean setting, and automatic-selection state. Keys inside `AdjustmentResult.series` and
 `AdjustmentResult.diagnostics` mirror the pinned JDemetra+ result dictionary.
 They vary by method and specification and are not individually guaranteed by
 the Python package.
