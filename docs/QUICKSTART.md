@@ -1,124 +1,67 @@
-# Five-Minute Quickstart
+# Quickstart
 
-## 1. Install
+## Install
 
-Install Python 3.11 or later, Java 8 or later, and `demetrapy`:
+Install Python 3.11+, Java 9+, and the package:
 
 ```bash
 python -m pip install demetrapy
-demetrapy --help
 demetrapy check
 ```
 
-The first adjustment downloads the pinned JDemetra+ core JAR and caches it in
-`~/.cache/demetrapy`. The readiness check is read-only: it does not start Java,
-download the JAR, or create files. A missing cached JAR is a warning because it
-can be downloaded automatically on first use.
+The first adjustment downloads JDemetra+ 2.2.6 to
+`~/.cache/demetrapy`. The readiness check itself is read-only.
 
-## 2. Create Input Data
+## Python: Adjust Several Series
 
-Create `monthly_sales.csv` with a regular monthly series:
+The built-in emissions dataset has ten monthly columns and a date index:
+
+```python
+from demetrapy import X13Config, adjust_dataframe, load_monthly_emissions
+
+data = load_monthly_emissions()
+result = adjust_dataframe(
+    data,
+    config=X13Config(spec="RSA4", forecast_horizon=12),
+)
+
+print(result.seasonally_adjusted.tail())
+print(result.calendar_adjusted.tail())
+print(result.to_forecast_frame().head())
+```
+
+The component attributes are DataFrames with the same ten columns. Forecasts
+start after the last input date.
+
+## CLI: Adjust a CSV
+
+Input files use regular ISO dates and one numeric value column:
 
 ```csv
 date,value
-2023-01-01,108.2
-2023-02-01,110.5
-2023-03-01,116.1
-2023-04-01,114.8
+2019-01-01,101.2
+2019-02-01,103.8
+2019-03-01,107.1
 ```
 
-Real seasonal adjustment requires a substantially longer series; these rows
-only show the file layout.
-
-## 3. Create a Configuration
-
-Generate an X13 starter configuration:
+Run the default X13 `RSA4` adjustment:
 
 ```bash
-demetrapy init-config --method x13 --output x13.json
+demetrapy input.csv --output adjusted.csv
 ```
 
-For TRAMO/SEATS, replace `x13` with `tramoseats`.
-
-## 4. Validate Before Running
-
-Check the configuration and input file without starting Java:
+For a reviewed configuration file:
 
 ```bash
-demetrapy validate x13.json --data monthly_sales.csv
+demetrapy init-config --method tramoseats --output config.json
+demetrapy validate config.json --data input.csv
+demetrapy input.csv --config config.json --output adjusted.csv
 ```
 
-Validation reports unsupported presets, wrong-engine options, malformed nested
-settings, missing columns, invalid numbers, and an invalid first date.
+The output columns are `y`, `ycal`, `sa`, `t`, `s`, and `i`.
 
-## 5. Run the Adjustment
+## Next
 
-```bash
-demetrapy monthly_sales.csv --config x13.json --output adjusted.csv
-```
-
-Add `--audit audit/` to write a JSON manifest for the run and append the same
-record to `audit/runs.jsonl`.
-
-The output contains observed (`y`), calendar-adjusted (`ycal`), seasonally
-adjusted (`sa`), trend (`t`), seasonal (`s`), and irregular (`i`) series.
-
-Python users can choose a JSON file, a typed object, or direct keywords. All
-three calls below perform the same X13 adjustment.
-
-Use JSON when configuration is shared with the CLI:
-
-```python
-from demetrapy import adjust_csv
-
-result = adjust_csv(
-    "monthly_sales.csv",
-    config="x13.json",
-    output="adjusted.csv",
-    audit="audit/",
-    detailed=True,
-)
-
-print(result.seasonally_adjusted.values)
-print(result.diagnostics)
-print(result.messages)
-```
-
-Use a typed object for discoverable, reusable Python configuration:
-
-```python
-from demetrapy import X13Config, adjust_csv
-
-config = X13Config(spec="RSA4", forecast_horizon=12)
-result = adjust_csv("monthly_sales.csv", config=config, output="adjusted.csv")
-```
-
-Use direct keywords for a short one-off call:
-
-```python
-result = adjust_csv(
-    "monthly_sales.csv",
-    output="adjusted.csv",
-    method="x13",
-    spec="RSA4",
-    forecast_horizon=12,
-)
-```
-
-Use only one configuration style in a call. Existing keyword and JSON calls
-remain supported.
-
-A complete runnable version using the built-in toy data is available in
-[`examples/10_csv_workflow.py`](https://github.com/SermetPekin/demetrapy/blob/main/examples/10_csv_workflow.py).
-
-For multiple DataFrame columns, use `adjust_dataframe()`. For fault-tolerant
-multi-company processing with audit logs, run:
-
-```bash
-python examples/09_bulk_processing_audit.py
-```
-
-Continue with the
-[usage guide](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md)
-or the
-[configuration reference](https://github.com/SermetPekin/demetrapy/blob/main/docs/CONFIGURATION.md).
+- Use [USAGE.md](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md) for API and CLI workflows.
+- Use [CONFIGURATION.md](https://github.com/SermetPekin/demetrapy/blob/main/docs/CONFIGURATION.md) for model options.
+- Browse the [examples](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md) for complete programs.

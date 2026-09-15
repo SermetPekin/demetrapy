@@ -17,6 +17,10 @@ from typing import Callable, Sequence
 from .engine import JAR_URL, JDEMETRA_VERSION
 
 
+MINIMUM_PYTHON_VERSION = (3, 11)
+MINIMUM_JAVA_VERSION = 9
+
+
 @dataclass(frozen=True)
 class ReadinessCheck:
     name: str
@@ -43,7 +47,8 @@ def run_readiness_checks(
                 "Java",
                 "ERROR",
                 "java was not found on PATH",
-                "Install Java 8 or later and make the java command available.",
+                f"Install Java {MINIMUM_JAVA_VERSION} or later, add it to PATH, "
+                "then run 'java -version'.",
             )
         )
     else:
@@ -62,12 +67,14 @@ def is_ready(checks: Sequence[ReadinessCheck]) -> bool:
 def _python_check() -> ReadinessCheck:
     version = platform.python_version()
     bits = struct.calcsize("P") * 8
-    if sys.version_info < (3, 11):
+    minimum = ".".join(str(part) for part in MINIMUM_PYTHON_VERSION)
+    if sys.version_info < MINIMUM_PYTHON_VERSION:
         return ReadinessCheck(
             "Python",
             "ERROR",
             f"{version} ({bits}-bit)",
-            "Install Python 3.11 or later.",
+            f"Install Python {minimum} or later, then recreate the virtual "
+            f"environment (for example: 'uv venv --python {minimum}').",
         )
     return ReadinessCheck("Python", "OK", f"{version} ({bits}-bit)")
 
@@ -80,7 +87,7 @@ def _jpype_check() -> ReadinessCheck:
             "JPype",
             "ERROR",
             "not installed",
-            "Reinstall demetrapy to install its JPype1 dependency.",
+            "Run 'python -m pip install --upgrade JPype1 demetrapy'.",
         )
     return ReadinessCheck("JPype", "OK", version)
 
@@ -103,7 +110,7 @@ def _java_check(
                 "Java",
                 "ERROR",
                 str(error),
-                "Verify the Java installation and the java command on PATH.",
+                "Run 'java -version'. If it fails, reinstall Java and verify PATH/JAVA_HOME.",
             ),
             None,
         )
@@ -118,18 +125,19 @@ def _java_check(
                 "Java",
                 "ERROR",
                 f"command failed with exit code {completed.returncode}",
-                "Run 'java -version' and repair the Java installation.",
+                "Run 'java -version'. If it fails, reinstall Java and verify PATH/JAVA_HOME.",
             ),
             architecture,
         )
     major = _java_major_version(version)
-    if major is not None and major < 9:
+    if major is not None and major < MINIMUM_JAVA_VERSION:
         return (
             ReadinessCheck(
                 "Java",
                 "ERROR",
                 f"{version} ({architecture_name or 'unknown architecture'})",
-                "Install Java 9 or later.",
+                f"Install Java {MINIMUM_JAVA_VERSION} or later, update "
+                "PATH/JAVA_HOME, then run 'java -version'.",
             ),
             architecture,
         )
@@ -150,14 +158,16 @@ def _architecture_check(java_bits: int | None) -> ReadinessCheck:
             "Architecture",
             "WARNING",
             f"Python is {python_bits}-bit; Java architecture could not be determined",
-            "Confirm Python and Java use the same architecture.",
+            "Run 'java -XshowSettings:properties -version' and confirm os.arch "
+            "matches Python.",
         )
     if java_bits != python_bits:
         return ReadinessCheck(
             "Architecture",
             "ERROR",
             f"Python is {python_bits}-bit; Java is {java_bits}-bit",
-            "Install matching Python and Java architectures.",
+            "Install Python and Java builds for the same architecture, then "
+            "recreate the virtual environment.",
         )
     return ReadinessCheck("Architecture", "OK", f"Python and Java are {python_bits}-bit")
 
@@ -171,7 +181,8 @@ def _jar_check(environment: dict[str, str]) -> ReadinessCheck:
                 "JDemetra+ JAR",
                 "ERROR",
                 f"DEMETRAPY_JAR does not point to a file: {path}",
-                "Correct DEMETRAPY_JAR or unset it to use the automatic cache.",
+                "Point DEMETRAPY_JAR to a readable JAR file, or unset it to "
+                "enable the automatic download.",
             )
         return ReadinessCheck(
             "JDemetra+ JAR",

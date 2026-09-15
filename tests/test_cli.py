@@ -1,5 +1,5 @@
 import csv
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 import json
 import tempfile
@@ -170,11 +170,16 @@ class CliTest(unittest.TestCase):
                 "Java",
                 "ERROR",
                 "not found",
-                "Install Java 8 or later.",
+                "Install Java 9 or later.",
             ),
         )
 
-        self.assertEqual(run(["check"]), 2)
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(run(["check"]), 2)
+
+        self.assertIn("Fix: Install Java 9 or later.", output.getvalue())
+        self.assertIn("run 'demetrapy check' again", output.getvalue())
 
     def test_validates_config_without_running_adjustment(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

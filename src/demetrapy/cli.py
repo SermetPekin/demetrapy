@@ -126,12 +126,12 @@ def _run_check(argv: Sequence[str]) -> int:
     for check in checks:
         print(f"{check.name:<{width}}  {check.status:<7}  {check.detail}")
         if check.action:
-            print(f"{'':<{width}}           {check.action}")
+            print(f"{'':<{width}}           Fix: {check.action}")
     print()
     if is_ready(checks):
         print("demetrapy is ready.")
         return 0
-    print("demetrapy is not ready. Resolve the ERROR items above.")
+    print("demetrapy is not ready. Apply the Fix steps above, then run 'demetrapy check' again.")
     return 2
 
 

@@ -6,7 +6,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from demetrapy.readiness import ReadinessCheck, is_ready, run_readiness_checks
+from demetrapy.readiness import (
+    MINIMUM_JAVA_VERSION,
+    ReadinessCheck,
+    is_ready,
+    run_readiness_checks,
+)
 
 
 def java_result(*, architecture="aarch64", version="17.0.12", returncode=0):
@@ -52,6 +57,9 @@ class ReadinessTest(unittest.TestCase):
         errors = {check.name: check for check in checks if check.status == "ERROR"}
         self.assertIn("Java", errors)
         self.assertIn("JDemetra+ JAR", errors)
+        self.assertIn(f"Java {MINIMUM_JAVA_VERSION} or later", errors["Java"].action)
+        self.assertIn("java -version", errors["Java"].action)
+        self.assertIn("DEMETRAPY_JAR", errors["JDemetra+ JAR"].action)
         mock_which.assert_called_once()
 
     def test_architecture_mismatch_is_blocking(self) -> None:

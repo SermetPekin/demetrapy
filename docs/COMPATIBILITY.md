@@ -2,8 +2,9 @@
 
 ## Runtime Support
 
-`demetrapy` supports Python 3.11 or newer and requires a same-architecture
-Java runtime. JDemetra+ core is pinned to `demetra-tstoolkit` 2.2.6 so an
+`demetrapy` supports Python 3.11 or newer and Java 9 or newer. Python and Java
+must use the same architecture. JDemetra+ core is pinned to
+`demetra-tstoolkit` 2.2.6 so an
 upstream release cannot silently change calculations.
 
 The continuous-integration matrix exercises these representative combinations:
