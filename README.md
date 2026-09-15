@@ -129,6 +129,7 @@ dataset, or upload your own files.
 ```bash
 demetrapy-dashboard
 ```
+<img width="850" alt="image" src="https://github.com/user-attachments/assets/e524932e-f7dd-49f0-b871-5096adf95c69" />
 
 From the dashboard you can:
 
