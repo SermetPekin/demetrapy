@@ -4,7 +4,7 @@
 
 Install 64-bit versions of:
 
-- Python 3.9 or newer from [python.org](https://www.python.org/downloads/windows/)
+- Python 3.11 or newer from [python.org](https://www.python.org/downloads/windows/)
 - Java 8 or newer; Java 11 is recommended
 - Git, if installing from a cloned repository
 

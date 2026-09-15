@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 
 FREQUENCIES = ("Monthly", "Quarterly", "HalfYearly", "Yearly")
@@ -341,7 +341,7 @@ class AdjustmentConfig:
         }
 
 
-Config = AdjustmentConfig | X13Config | TramoSeatsConfig
+Config = Union[AdjustmentConfig, X13Config, TramoSeatsConfig]
 
 
 def normalize_config(config: Config) -> AdjustmentConfig:

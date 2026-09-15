@@ -1,7 +1,7 @@
 # demetrapy
 
 [![PyPI](https://img.shields.io/pypi/v/demetrapy)](https://pypi.org/project/demetrapy/)
-[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
 
 `demetrapy` exposes JDemetra+ X13 and TRAMO/SEATS through Python, pandas, a
@@ -10,7 +10,7 @@ yearly data, calendars, regressors, outliers, ARIMA models, and forecasts.
 
 ## Installation
 
-`demetrapy` requires Python 3.9 or later and Java 8 or later.
+`demetrapy` requires Python 3.11 or later and Java 8 or later.
 
 ```bash
 python -m pip install demetrapy

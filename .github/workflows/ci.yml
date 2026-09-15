@@ -16,13 +16,13 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: "3.9"
+            python: "3.11"
             java: "11"
           - os: ubuntu-latest
             python: "3.13"
             java: "17"
           - os: windows-latest
-            python: "3.11"
+            python: "3.14"
             java: "11"
           # - os: macos-latest
           #   python: "3.12"

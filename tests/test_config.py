@@ -1,10 +1,14 @@
 import inspect
 import unittest
+from typing import Union, get_origin
 
-from demetrapy.config import TramoSeatsConfig, X13Config, normalize_config
+from demetrapy.config import Config, TramoSeatsConfig, X13Config, normalize_config
 
 
 class MethodConfigTest(unittest.TestCase):
+    def test_config_alias_is_compatible_with_python_39(self) -> None:
+        self.assertIs(get_origin(Config), Union)
+
     def test_x13_config_normalizes_to_existing_contract(self) -> None:
         config = X13Config(spec="RSA5", seasonal_filter="S3X5")
 

@@ -2,7 +2,7 @@
 
 ## Runtime Support
 
-`demetrapy` supports Python 3.9 or newer and requires a same-architecture
+`demetrapy` supports Python 3.11 or newer and requires a same-architecture
 Java runtime. JDemetra+ core is pinned to `demetra-tstoolkit` 2.2.6 so an
 upstream release cannot silently change calculations.
 
@@ -10,10 +10,9 @@ The continuous-integration matrix exercises these representative combinations:
 
 | Operating system | Python | Java |
 | --- | --- | --- |
-| Ubuntu | 3.9 | Temurin 11 |
+| Ubuntu | 3.11 | Temurin 11 |
 | Ubuntu | 3.13 | Temurin 17 |
-| Windows | 3.11 | Temurin 11 |
-| macOS | 3.12 | Temurin 11 |
+| Windows | 3.14 | Temurin 11 |
 
 Other Python and Java versions within the documented ranges may work, but a
 combination is considered verified only after it passes CI. Python and Java

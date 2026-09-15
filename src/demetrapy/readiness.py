@@ -67,7 +67,7 @@ def _python_check() -> ReadinessCheck:
             "Python",
             "ERROR",
             f"{version} ({bits}-bit)",
-            "Install Python 3.9 or later.",
+            "Install Python 3.11 or later.",
         )
     return ReadinessCheck("Python", "OK", f"{version} ({bits}-bit)")
 

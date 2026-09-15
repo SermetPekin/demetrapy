@@ -2,7 +2,7 @@
 
 ## 1. Install
 
-Install Python 3.9 or later, Java 8 or later, and `demetrapy`:
+Install Python 3.11 or later, Java 8 or later, and `demetrapy`:
 
 ```bash
 python -m pip install demetrapy

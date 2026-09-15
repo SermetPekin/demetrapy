@@ -6,7 +6,7 @@ groups, defaults, and every supported ARIMA/X11/SEATS option, see the
 
 ## Installation
 
-`demetrapy` requires Python 3.9+ and Java 8+.
+`demetrapy` requires Python 3.11+ and Java 8+.
 
 For Command Prompt, proxy-restricted networks, and manual JAR installation, see
 the
