@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 
 from demetrapy import DataFrameAdjustmentResult, TramoSeatsConfig, adjust_dataframe
@@ -30,6 +32,8 @@ def seasonally_adjust(frame: pd.DataFrame) -> DataFrameAdjustmentResult:
 
 
 if __name__ == "__main__":
+    output_directory = Path("example_output")
+    output_directory.mkdir(exist_ok=True)
     input_frame = create_input()
     result = seasonally_adjust(input_frame)
     history = result.components["value"]
@@ -61,11 +65,8 @@ if __name__ == "__main__":
     print(f"Diagnostics: {len(series_result.diagnostics)}")
     print(f"Messages: {len(series_result.messages)}")
 
-    compact_history.to_csv("historical_compact.csv")
-    compact_forecasts.to_csv("forecast_compact.csv")
-    combined_sa.to_csv("combined_seasonally_adjusted.csv")
-    detailed_frame.to_csv("detailed_dataframe.csv")
-    print(
-        "\nSaved historical_compact.csv, forecast_compact.csv, "
-        "combined_seasonally_adjusted.csv, and detailed_dataframe.csv"
-    )
+    compact_history.to_csv(output_directory / "historical_compact.csv")
+    compact_forecasts.to_csv(output_directory / "forecast_compact.csv")
+    combined_sa.to_csv(output_directory / "combined_seasonally_adjusted.csv")
+    detailed_frame.to_csv(output_directory / "detailed_dataframe.csv")
+    print(f"\nSaved CSV results under {output_directory}/")

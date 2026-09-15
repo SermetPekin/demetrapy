@@ -10,3 +10,4 @@ forecast_dataframe.csv
 method_comparison.csv
 bulk_run_output/
 csv_workflow_output/
+example_output/

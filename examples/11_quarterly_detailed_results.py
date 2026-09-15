@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 
 from demetrapy import (
@@ -25,6 +27,8 @@ def seasonally_adjust(frame: pd.DataFrame) -> DataFrameAdjustmentResult:
 
 
 if __name__ == "__main__":
+    output_directory = Path("example_output")
+    output_directory.mkdir(exist_ok=True)
     input_frame = load_quarterly_production()
     result = seasonally_adjust(input_frame)
     history = result.components["production"]
@@ -68,13 +72,10 @@ if __name__ == "__main__":
     print(f"Diagnostics: {len(series_result.diagnostics)}")
     print(f"Messages: {len(series_result.messages)}")
 
-    compact_history.to_csv("quarterly_historical_compact.csv")
-    compact_forecasts.to_csv("quarterly_forecast_compact.csv")
-    combined_sa.to_csv("quarterly_combined_seasonally_adjusted.csv")
-    detailed_frame.to_csv("quarterly_detailed_dataframe.csv")
-    print(
-        "\nSaved quarterly_historical_compact.csv, "
-        "quarterly_forecast_compact.csv, "
-        "quarterly_combined_seasonally_adjusted.csv, and "
-        "quarterly_detailed_dataframe.csv"
+    compact_history.to_csv(output_directory / "quarterly_historical_compact.csv")
+    compact_forecasts.to_csv(output_directory / "quarterly_forecast_compact.csv")
+    combined_sa.to_csv(
+        output_directory / "quarterly_combined_seasonally_adjusted.csv"
     )
+    detailed_frame.to_csv(output_directory / "quarterly_detailed_dataframe.csv")
+    print(f"\nSaved quarterly CSV results under {output_directory}/")
