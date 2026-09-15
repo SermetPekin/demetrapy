@@ -120,12 +120,27 @@ demetrapy validate config.json --data input.csv
 demetrapy input.csv --config config.json --output adjusted.csv --audit audit/
 ```
 
-The dashboard provides interactive charts, diagnostics, model details, and
-downloads:
+## Dashboard
+
+The included Streamlit dashboard runs the same X13 and TRAMO/SEATS engine as
+the Python API. Start with a built-in monthly, quarterly, or calendar-adjusted
+dataset, or upload your own files.
 
 ```bash
 demetrapy-dashboard
 ```
+
+From the dashboard you can:
+
+- adjust one or several target columns;
+- upload JSON configuration and a separate calendar-variable pool;
+- map different calendar variables to each target;
+- inspect interactive components and forecasts;
+- review diagnostics, processing messages, and fitted models;
+- download result tables.
+
+Ready-to-upload files are available in the
+[dashboard example directory](https://github.com/SermetPekin/demetrapy/blob/main/examples/dashboard/README.md).
 
 ## Documentation
 
