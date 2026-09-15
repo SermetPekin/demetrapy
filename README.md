@@ -71,6 +71,11 @@ result = adjust(
 adjusted = result.seasonally_adjusted.values
 ```
 
+For quarterly data, `adjust_dataframe()` and `adjust_csv()` infer frequency
+from regular dates. Raw sequences have no dates, so pass
+`frequency="Quarterly"` and a one-based `start_period`. See the
+[quarterly example](https://github.com/SermetPekin/demetrapy/blob/main/examples/05_quarterly_models.py).
+
 Both functions always return a stable result object. Their `components`
 attribute exposes six named series used in routine work:
 
@@ -92,6 +97,11 @@ needed. Forecasts preserve their own future domain under `result.forecasts`;
 seasonal_forecast = result.forecasts.seasonal
 forecast_values = result.to_forecast_dict()
 ```
+
+Pandas results also provide `to_forecast_frame()` and
+`to_combined_frame()`. For example,
+`result.to_combined_frame(compact=True)[("sales", "sa")]` returns one
+seasonally adjusted series spanning history and forecast dates.
 
 ### Choose a configuration style
 

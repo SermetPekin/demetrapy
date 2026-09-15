@@ -64,6 +64,47 @@ Rows must be in chronological order. Supported frequencies are `Monthly`,
 `Quarterly`, `HalfYearly`, and `Yearly`. The first date determines the starting
 period.
 
+### Quarterly and Other Frequencies
+
+Frequency handling depends on the input API:
+
+| Input | Must frequency be supplied? |
+| --- | --- |
+| `adjust_dataframe()` | No. It is inferred from the regular `DatetimeIndex`. |
+| `adjust_csv()` without JSON/legacy config | No. It is inferred from regular ISO dates. |
+| CLI without `--config` | No. It is inferred from regular ISO dates. |
+| `adjust()` with a value sequence | Yes, unless monthly. Pass `frequency="Quarterly"`. |
+| JSON or `AdjustmentConfig` | It must contain the correct frequency and match dated input. |
+
+Method-specific `X13Config` and `TramoSeatsConfig` objects contain model
+settings, not data frequency. They follow the frequency inferred by
+`adjust_dataframe()` and `adjust_csv()`. For a raw sequence, supply frequency
+to `adjust()`:
+
+```python
+from demetrapy import X13Config, adjust, adjust_dataframe
+
+# Quarterly DatetimeIndex: frequency is inferred.
+frame_result = adjust_dataframe(quarterly_frame, config=X13Config())
+
+# No dates are available: frequency and starting quarter are explicit.
+sequence_result = adjust(
+  quarterly_values,
+  frequency="Quarterly",
+  start_year=2020,
+  start_period=1,
+  config=X13Config(),
+)
+```
+
+For CSV processing, at least two dates are required for inference. A mismatch
+such as quarterly dates with `"frequency": "Monthly"` is rejected before Java
+starts. Run the complete comparison with:
+
+```bash
+python examples/05_quarterly_models.py
+```
+
 ## Basic Command
 
 Run an X13 adjustment with the default monthly `RSA4` specification:
@@ -630,6 +671,38 @@ seasonally_adjusted = result.seasonally_adjusted.values
 ```
 
 ### Detailed Results
+
+For a DataFrame result, historical and forecast outputs are available without
+parsing raw JDemetra keys:
+
+```python
+from demetrapy import TramoSeatsConfig, adjust_dataframe
+
+result = adjust_dataframe(
+  frame,
+  config=TramoSeatsConfig(
+    spec="RSAfull",
+    seats={"prediction_length": 12},
+  ),
+  detailed=True,
+)
+
+history = result.components
+compact_history = result.to_compact_frame()             # y, ycal, sa, t, s, i
+forecasts = result.to_forecast_frame()                   # readable names
+compact_forecasts = result.to_forecast_frame(compact=True)  # y_f, ..., i_f
+combined = result.to_combined_frame(compact=True)        # y, ..., i over both domains
+
+sales_sa = combined[("sales", "sa")]
+```
+
+`to_forecast_frame()` uses the forecast series' own future date domain.
+`to_combined_frame()` vertically appends those future rows to history and is
+the convenient form for plotting or exporting one complete component. These
+helpers do not require `detailed=True`; detailed mode is only needed for raw
+series, diagnostics, messages, and fitted model metadata. A complete runnable
+TRAMO/SEATS workflow is in
+[`examples/02_detailed_results.py`](https://github.com/SermetPekin/demetrapy/blob/main/examples/02_detailed_results.py).
 
 `adjust()` always returns an `AdjustmentResult`. Its named component
 attributes are available at every detail level, and `to_compact_dict()`

@@ -17,6 +17,19 @@ _FREQUENCIES = {
     12: "Yearly",
 }
 
+_COMPONENT_ALIASES = {
+    "observed": "y",
+    "calendar_adjusted": "ycal",
+    "seasonally_adjusted": "sa",
+    "trend": "t",
+    "seasonal": "s",
+    "irregular": "i",
+}
+
+_FORECAST_ALIASES = {
+    name: f"{alias}_f" for name, alias in _COMPONENT_ALIASES.items()
+}
+
 
 @dataclass(frozen=True)
 class DataFrameAdjustmentResult:
@@ -31,15 +44,40 @@ class DataFrameAdjustmentResult:
             raise KeyError(f"unknown result series: {target}") from error
 
     def to_compact_frame(self) -> Any:
-        aliases = {
-            "observed": "y",
-            "calendar_adjusted": "ycal",
-            "seasonally_adjusted": "sa",
-            "trend": "t",
-            "seasonal": "s",
-            "irregular": "i",
-        }
-        return self.components.rename(columns=aliases, level="component")
+        return self.components.rename(columns=_COMPONENT_ALIASES, level="component")
+
+    def to_forecast_frame(self, *, compact: bool = False) -> Any:
+        """Return forecast components with their future date indexes."""
+        pd = _pandas()
+        frames = [
+            frame
+            for target, result in self.results.items()
+            if not (frame := _forecast_components_frame(target, result, pd)).empty
+        ]
+        if not frames:
+            return pd.DataFrame()
+        forecasts = pd.concat(frames, axis=1).sort_index()
+        forecasts = forecasts.rename_axis(self.components.index.name)
+        if compact:
+            forecasts = forecasts.rename(
+                columns=_FORECAST_ALIASES,
+                level="component",
+            )
+        return forecasts
+
+    def to_combined_frame(self, *, compact: bool = False) -> Any:
+        """Return historical components followed by available forecasts."""
+        pd = _pandas()
+        history = self.to_compact_frame() if compact else self.components
+        forecasts = self.to_forecast_frame()
+        if forecasts.empty:
+            return history.copy()
+        if compact:
+            forecasts = forecasts.rename(
+                columns=_COMPONENT_ALIASES,
+                level="component",
+            )
+        return pd.concat([history, forecasts]).sort_index()
 
     @property
     def observed(self) -> Any:
@@ -200,6 +238,24 @@ def _components_frame(
     return frame
 
 
+def _forecast_components_frame(
+    target: Any,
+    result: AdjustmentResult,
+    pd: Any,
+) -> Any:
+    columns = {}
+    for name in _COMPONENT_ALIASES:
+        output = result.forecasts[name]
+        if output is not None:
+            columns[name] = pd.Series(output.values, index=_output_index(output, pd))
+    frame = pd.DataFrame(columns)
+    if not frame.empty:
+        frame.columns = pd.MultiIndex.from_product(
+            [[target], frame.columns], names=["series", "component"]
+        )
+    return frame
+
+
 def _detailed_frame(target: Any, result: AdjustmentResult, pd: Any) -> Any:
     detailed = _output_frame(result, pd)
     detailed.columns = pd.MultiIndex.from_product(
@@ -211,24 +267,29 @@ def _detailed_frame(target: Any, result: AdjustmentResult, pd: Any) -> Any:
 def _output_frame(result: AdjustmentResult, pd: Any) -> Any:
     columns = {}
     for name, output in result.series.items():
-        month = {
-            "Monthly": output.start_period,
-            "Quarterly": (output.start_period - 1) * 3 + 1,
-            "HalfYearly": (output.start_period - 1) * 6 + 1,
-            "Yearly": 1,
-        }[output.frequency]
-        aliases = {
-            "Monthly": "M",
-            "Quarterly": "Q-DEC",
-            "HalfYearly": "2Q-DEC",
-            "Yearly": "Y-DEC",
-        }
-        start = pd.Timestamp(output.start_year, month, 1)
-        index = pd.period_range(
-            start=start, periods=len(output.values), freq=aliases[output.frequency]
-        ).to_timestamp()
-        columns[name] = pd.Series(output.values, index=index)
+        columns[name] = pd.Series(output.values, index=_output_index(output, pd))
     return pd.DataFrame(columns)
+
+
+def _output_index(output: Any, pd: Any) -> Any:
+    month = {
+        "Monthly": output.start_period,
+        "Quarterly": (output.start_period - 1) * 3 + 1,
+        "HalfYearly": (output.start_period - 1) * 6 + 1,
+        "Yearly": 1,
+    }[output.frequency]
+    aliases = {
+        "Monthly": "M",
+        "Quarterly": "Q-DEC",
+        "HalfYearly": "2Q-DEC",
+        "Yearly": "Y-DEC",
+    }
+    start = pd.Timestamp(output.start_year, month, 1)
+    return pd.period_range(
+        start=start,
+        periods=len(output.values),
+        freq=aliases[output.frequency],
+    ).to_timestamp()
 
 
 def _pandas() -> Any:

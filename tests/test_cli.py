@@ -1,4 +1,6 @@
 import csv
+from contextlib import redirect_stderr
+from io import StringIO
 import json
 import tempfile
 import unittest
@@ -79,6 +81,51 @@ class ConfigTest(unittest.TestCase):
 
 
 class CliTest(unittest.TestCase):
+    @patch("demetrapy.cli.adjust")
+    def test_processing_infers_quarterly_frequency_without_config(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result(
+            {name: [10.0, 20.0] for name in ("y", "ycal", "sa", "t", "s", "i")}
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            data_path = root / "quarterly.csv"
+            output_path = root / "output.csv"
+            data_path.write_text(
+                "date,value\n2024-04-01,10\n2024-07-01,20\n",
+                encoding="utf-8",
+            )
+
+            exit_code = run(
+                [str(data_path), "--output", str(output_path)]
+            )
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(mock_adjust.call_args.kwargs["frequency"], "Quarterly")
+        self.assertEqual(mock_adjust.call_args.kwargs["start_period"], 2)
+
+    def test_validate_rejects_frequency_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config_path = root / "config.json"
+            data_path = root / "quarterly.csv"
+            config_path.write_text(
+                json.dumps({"frequency": "Monthly"}),
+                encoding="utf-8",
+            )
+            data_path.write_text(
+                "date,value\n2023-01-01,10\n2023-04-01,20\n",
+                encoding="utf-8",
+            )
+
+            error_output = StringIO()
+            with redirect_stderr(error_output):
+                exit_code = run(
+                    ["validate", str(config_path), "--data", str(data_path)]
+                )
+
+        self.assertEqual(exit_code, 2)
+        self.assertIn("CSV dates are Quarterly", error_output.getvalue())
+
     @patch("demetrapy.cli.adjust")
     def test_audit_option_writes_manifest(self, mock_adjust) -> None:
         mock_adjust.return_value = adjustment_result(

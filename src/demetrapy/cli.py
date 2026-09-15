@@ -7,7 +7,14 @@ from pathlib import Path
 from typing import Sequence
 
 from .config import AdjustmentConfig
-from .csv_io import PERIODS_PER_YEAR, _execute_csv, _read_csv, _start, _write_csv
+from .csv_io import (
+    PERIODS_PER_YEAR,
+    _execute_csv,
+    _frequency_from_dates,
+    _read_csv,
+    _start,
+    _write_csv,
+)
 from .engine import adjust
 from .plotting import plot_adjustment
 from .readiness import is_ready, run_readiness_checks
@@ -72,6 +79,12 @@ def _run_validate(argv: Sequence[str]) -> int:
     config = AdjustmentConfig.load(args.config)
     if args.data:
         dates, _, _ = _read_csv(args.data, config)
+        data_frequency = _frequency_from_dates(dates)
+        if config.frequency != data_frequency:
+            raise ValueError(
+                f"CSV dates are {data_frequency}, but configuration frequency is "
+                f"{config.frequency}"
+            )
         _start(dates, config.frequency)
     if args.output:
         args.output.write_text(

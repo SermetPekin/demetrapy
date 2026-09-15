@@ -24,7 +24,6 @@ X11_OPTIONS = (
 
 @dataclass(frozen=True)
 class X13Config:
-    frequency: str = "Monthly"
     spec: str = "RSA4"
     date_column: str = "date"
     value_column: str = "value"
@@ -45,8 +44,10 @@ class X13Config:
     preprocessing: dict[str, Any] | None = None
     outlier_detection: dict[str, Any] | None = None
 
-    def to_adjustment_config(self) -> "AdjustmentConfig":
-        config = AdjustmentConfig(method="x13", **asdict(self))
+    def to_adjustment_config(
+        self, *, frequency: str = "Monthly"
+    ) -> "AdjustmentConfig":
+        config = AdjustmentConfig(method="x13", frequency=frequency, **asdict(self))
         config.validate()
         return config
 
@@ -59,7 +60,6 @@ class X13Config:
 
 @dataclass(frozen=True)
 class TramoSeatsConfig:
-    frequency: str = "Monthly"
     spec: str = "RSA4"
     date_column: str = "date"
     value_column: str = "value"
@@ -74,8 +74,12 @@ class TramoSeatsConfig:
     outlier_detection: dict[str, Any] | None = None
     seats: dict[str, Any] | None = None
 
-    def to_adjustment_config(self) -> "AdjustmentConfig":
-        config = AdjustmentConfig(method="tramoseats", **asdict(self))
+    def to_adjustment_config(
+        self, *, frequency: str = "Monthly"
+    ) -> "AdjustmentConfig":
+        config = AdjustmentConfig(
+            method="tramoseats", frequency=frequency, **asdict(self)
+        )
         config.validate()
         return config
 
@@ -344,8 +348,10 @@ class AdjustmentConfig:
 Config = Union[AdjustmentConfig, X13Config, TramoSeatsConfig]
 
 
-def normalize_config(config: Config) -> AdjustmentConfig:
+def normalize_config(
+    config: Config, *, frequency: str = "Monthly"
+) -> AdjustmentConfig:
     if isinstance(config, AdjustmentConfig):
         config.validate()
         return config
-    return config.to_adjustment_config()
+    return config.to_adjustment_config(frequency=frequency)

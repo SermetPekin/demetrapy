@@ -50,10 +50,15 @@ def _execute_csv(
     recorder = AuditRecorder(audit, path, output) if audit is not None else None
     resolved = None
     try:
+        infer_frequency = (
+            config is None
+            or not isinstance(config, (str, Path, AdjustmentConfig))
+        ) and not (overrides and "frequency" in overrides)
         resolved = _resolve_config(config, overrides)
-        dates, result = _process_csv(
+        dates, result, resolved = _process_csv(
             path,
             resolved,
+            infer_frequency=infer_frequency,
             detailed=detailed,
             adjustment_function=adjustment_function,
         )
@@ -111,11 +116,20 @@ def _process_csv(
     path: Path,
     config: AdjustmentConfig,
     *,
+    infer_frequency: bool = False,
     detailed: bool = False,
     adjustment_function: Callable[..., AdjustmentResult] | None = None,
-) -> tuple[list[str], AdjustmentResult]:
+) -> tuple[list[str], AdjustmentResult, AdjustmentConfig]:
     config.validate()
     dates, values, user_values = _read_csv(path, config)
+    data_frequency = _frequency_from_dates(dates)
+    if infer_frequency:
+        config = replace(config, frequency=data_frequency)
+    elif config.frequency != data_frequency:
+        raise ValueError(
+            f"CSV dates are {data_frequency}, but configuration frequency is "
+            f"{config.frequency}"
+        )
     start_year, start_period = _start(dates, config.frequency)
     engine_options = config.engine_options(user_values)
     if detailed:
@@ -130,7 +144,7 @@ def _process_csv(
     compact = result.to_compact_dict()
     if any(len(series) != len(dates) for series in compact.values()):
         raise RuntimeError("JDemetra+ returned an unexpected output length")
-    return dates, result
+    return dates, result, config
 
 
 def _read_csv(
@@ -169,6 +183,27 @@ def _start(dates: Sequence[str], frequency: str) -> tuple[int, int]:
             f"one of {', '.join(PERIODS_PER_YEAR)}"
         ) from error
     return first.year, ((first.month - 1) * periods // 12) + 1
+
+
+def _frequency_from_dates(dates: Sequence[str]) -> str:
+    if len(dates) < 2:
+        raise ValueError("CSV needs at least two dates to infer frequency")
+    try:
+        parsed = [date.fromisoformat(value) for value in dates]
+    except ValueError as error:
+        raise ValueError("CSV dates must use ISO YYYY-MM-DD format") from error
+    month_numbers = [value.year * 12 + value.month for value in parsed]
+    steps = {
+        current - previous
+        for previous, current in zip(month_numbers, month_numbers[1:])
+    }
+    frequencies = {1: "Monthly", 3: "Quarterly", 6: "HalfYearly", 12: "Yearly"}
+    if len(steps) != 1 or next(iter(steps)) not in frequencies:
+        raise ValueError(
+            "CSV dates must be increasing and regularly monthly, quarterly, "
+            "half-yearly, or yearly"
+        )
+    return frequencies[steps.pop()]
 
 
 def _write_csv(

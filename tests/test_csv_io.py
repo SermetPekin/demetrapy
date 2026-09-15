@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from demetrapy import TramoSeatsConfig, adjust_csv
 from demetrapy.config import AdjustmentConfig
+from demetrapy.csv_io import _frequency_from_dates
 from demetrapy.engine import AdjustmentComponents, AdjustmentResult, OutputSeries
 
 
@@ -40,6 +41,94 @@ def adjustment_result() -> AdjustmentResult:
 
 
 class AdjustCsvTest(unittest.TestCase):
+    def test_infers_every_supported_csv_frequency(self) -> None:
+        cases = (
+            ("Monthly", ["2023-01-01", "2023-02-01", "2023-03-01"]),
+            ("Quarterly", ["2023-04-01", "2023-07-01", "2023-10-01"]),
+            ("HalfYearly", ["2023-01-01", "2023-07-01", "2024-01-01"]),
+            ("Yearly", ["2021-01-01", "2022-01-01", "2023-01-01"]),
+        )
+
+        for expected, dates in cases:
+            with self.subTest(expected=expected):
+                self.assertEqual(_frequency_from_dates(dates), expected)
+
+    def test_rejects_unusable_csv_date_domains(self) -> None:
+        cases = (
+            ("at least two", ["2023-01-01"]),
+            ("ISO YYYY-MM-DD", ["2023-01-01", "not-a-date"]),
+            ("increasing and regularly", ["2023-01-01", "2023-03-01", "2023-04-01"]),
+            ("increasing and regularly", ["2023-07-01", "2023-04-01"]),
+            ("increasing and regularly", ["2023-01-01", "2023-05-01"]),
+        )
+
+        for message, dates in cases:
+            with self.subTest(dates=dates):
+                with self.assertRaisesRegex(ValueError, message):
+                    _frequency_from_dates(dates)
+
+    @patch("demetrapy.csv_io.adjust")
+    def test_infers_quarterly_frequency_from_csv_dates(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result()
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "quarterly.csv"
+            input_path.write_text(
+                "date,value\n2023-01-01,10\n2023-04-01,20\n",
+                encoding="utf-8",
+            )
+
+            adjust_csv(input_path, config=TramoSeatsConfig())
+
+        self.assertEqual(mock_adjust.call_args.kwargs["frequency"], "Quarterly")
+        self.assertEqual(mock_adjust.call_args.kwargs["start_period"], 1)
+
+    @patch("demetrapy.csv_io.adjust")
+    def test_infers_second_quarter_start_without_config(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result()
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "quarterly.csv"
+            input_path.write_text(
+                "date,value\n2023-04-01,10\n2023-07-01,20\n",
+                encoding="utf-8",
+            )
+
+            adjust_csv(input_path)
+
+        self.assertEqual(mock_adjust.call_args.kwargs["frequency"], "Quarterly")
+        self.assertEqual(mock_adjust.call_args.kwargs["start_year"], 2023)
+        self.assertEqual(mock_adjust.call_args.kwargs["start_period"], 2)
+
+    @patch("demetrapy.csv_io.adjust")
+    def test_accepts_explicit_frequency_that_matches_csv_dates(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result()
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "quarterly.csv"
+            input_path.write_text(
+                "date,value\n2023-01-01,10\n2023-04-01,20\n",
+                encoding="utf-8",
+            )
+
+            adjust_csv(
+                input_path,
+                config=AdjustmentConfig(frequency="Quarterly"),
+            )
+
+        self.assertEqual(mock_adjust.call_args.kwargs["frequency"], "Quarterly")
+
+    def test_rejects_frequency_that_disagrees_with_csv_dates(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            input_path = Path(directory) / "quarterly.csv"
+            input_path.write_text(
+                "date,value\n2023-01-01,10\n2023-04-01,20\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                ValueError,
+                "CSV dates are Quarterly.*frequency is Monthly",
+            ):
+                adjust_csv(input_path, config=AdjustmentConfig(frequency="Monthly"))
+
     @patch("demetrapy.csv_io.adjust")
     def test_accepts_method_specific_config(self, mock_adjust) -> None:
         mock_adjust.return_value = adjustment_result()
@@ -135,6 +224,24 @@ class AdjustCsvTest(unittest.TestCase):
         self.assertEqual(len(manifest["output"]["sha256"]), 64)
         self.assertEqual(manifest["result"]["method"], "x13")
         self.assertEqual(history, [manifest])
+
+    @patch("demetrapy.csv_io.adjust")
+    def test_audit_records_inferred_frequency(self, mock_adjust) -> None:
+        mock_adjust.return_value = adjustment_result()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            input_path = root / "quarterly.csv"
+            audit_path = root / "audit"
+            input_path.write_text(
+                "date,value\n2024-04-01,10\n2024-07-01,20\n",
+                encoding="utf-8",
+            )
+
+            adjust_csv(input_path, audit=audit_path)
+            manifest = json.loads(next(audit_path.glob("*.json")).read_text())
+
+        self.assertEqual(manifest["configuration"]["frequency"], "Quarterly")
+        self.assertEqual(mock_adjust.call_args.kwargs["frequency"], "Quarterly")
 
     @patch("demetrapy.csv_io.adjust", side_effect=RuntimeError("processing failed"))
     def test_writes_failure_manifest_and_preserves_exception(self, mock_adjust) -> None:

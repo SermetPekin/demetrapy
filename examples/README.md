@@ -43,10 +43,10 @@ Run them in order or copy the relevant configuration:
 | File | Purpose |
 | --- | --- |
 | `01_basic_models.py` | typed X13 and TRAMO/SEATS configurations |
-| `02_detailed_results.py` | components, forecasts, diagnostics, and CSV output |
+| `02_detailed_results.py` | complete TRAMO/SEATS history, forecast, combined, and diagnostic outputs |
 | `03_x13_models.py` | X11 filters, calendars, and outlier settings |
 | `04_tramoseats_models.py` | automatic and explicit ARIMA, calendars, and SEATS settings |
-| `05_quarterly_models.py` | quarterly processing with both engines |
+| `05_quarterly_models.py` | quarterly DataFrame/CSV inference and explicit sequence frequency |
 | `06_calendar_variables.py` | multiple targets with different calendar variables |
 | `07_compare_methods.py` | component-level comparison metrics for both engines |
 | `08_advanced_tramoseats.py` | full TRAMO/SEATS options with a UserDefined calendar |
@@ -81,6 +81,15 @@ The examples intentionally show three equivalent configuration styles:
 Typed objects favor discoverability, keywords favor short experiments, and
 JSON favors operational or reviewed workflows. All three use the same
 processors and return the same result types.
+
+Example 05 also clarifies frequency ownership: DataFrame and CSV dates are
+inspected automatically, while a raw sequence must pass `frequency="Quarterly"`
+and its one-based starting quarter.
+
+Example 02 is the complete result-access recipe. It shows readable and compact
+historical DataFrames, forecast DataFrames, one concatenated seasonally
+adjusted history-plus-forecast series, raw detailed outputs, diagnostics,
+messages, and fitted ARIMA metadata from TRAMO/SEATS.
 
 The equivalent command-line workflow is:
 
