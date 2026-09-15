@@ -18,6 +18,8 @@ from .dataframe import DataFrameAdjustmentResult, adjust_dataframe
 from .csv_io import adjust_csv
 from .datasets import (
 	CalendarDataset,
+	load_emissions_with_calendars,
+	load_monthly_emissions,
 	load_monthly_retail,
 	load_quarterly_production,
 	load_retail_with_calendars,
@@ -44,6 +46,8 @@ __all__ = [
 	"adjust",
 	"adjust_csv",
 	"adjust_dataframe",
+	"load_emissions_with_calendars",
+	"load_monthly_emissions",
 	"load_monthly_retail",
 	"load_quarterly_production",
 	"load_retail_with_calendars",

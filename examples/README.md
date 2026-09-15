@@ -8,11 +8,15 @@ only the configuration choices.
 
 ```python
 from demetrapy import (
+    load_emissions_with_calendars,
+    load_monthly_emissions,
     load_monthly_retail,
     load_quarterly_production,
     load_retail_with_calendars,
 )
 
+emissions = load_monthly_emissions()
+emissions_with_calendars = load_emissions_with_calendars()
 monthly = load_monthly_retail()
 quarterly = load_quarterly_production()
 calendar_data = load_retail_with_calendars()
@@ -20,6 +24,8 @@ calendar_data = load_retail_with_calendars()
 
 | Loader | Contents |
 | --- | --- |
+| `load_emissions_with_calendars()` | 10 emissions series, an 8-variable calendar pool, and per-series selections |
+| `load_monthly_emissions()` | 120 monthly observations for 10 emissions sectors |
 | `load_monthly_retail()` | 120 monthly observations for `sales` and `orders` |
 | `load_quarterly_production()` | 80 quarterly `production` observations |
 | `load_retail_with_calendars()` | Monthly observations, a 144-month calendar pool, and per-target selections |
@@ -52,6 +58,9 @@ Run them in order or copy the relevant configuration:
 | `08_advanced_tramoseats.py` | full TRAMO/SEATS options with a UserDefined calendar |
 | `09_bulk_processing_audit.py` | fault-tolerant company batch with success/failure audit files |
 | `10_csv_workflow.py` | configuration, `adjust_csv()`, output files, and structured audit records |
+| `11_quarterly_detailed_results.py` | quarterly history, four-quarter forecast, combined output, and date validation |
+| `12_multi_variable_emissions.py` | ten-variable monthly adjustment split into one DataFrame per component |
+| `13_full_config_calendar_pool.py` | full TRAMO/SEATS parameters with per-series variables from one shared pool |
 
 ```bash
 python examples/01_basic_models.py
@@ -90,6 +99,18 @@ Example 02 is the complete result-access recipe. It shows readable and compact
 historical DataFrames, forecast DataFrames, one concatenated seasonally
 adjusted history-plus-forecast series, raw detailed outputs, diagnostics,
 messages, and fitted ARIMA metadata from TRAMO/SEATS.
+
+Example 11 applies the same detailed workflow to quarterly data. Its forecast
+horizon is four observations, which represents one year for quarterly input.
+
+Example 12 adjusts all ten emissions variables in one call, then separates the
+result into observed, calendar-adjusted, seasonally adjusted, trend, seasonal,
+and irregular DataFrames. Each historical frame has 10 columns and a monthly
+date index; the equivalent forecast frames cover the following 12 months.
+
+Example 13 adds a shared calendar-variable pool and a mapping from each input
+column to its selected variables. Extra pool columns are deliberately left
+unused to demonstrate that only selected variable names must be consumed.
 
 The equivalent command-line workflow is:
 
