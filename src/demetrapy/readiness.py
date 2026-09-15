@@ -62,7 +62,7 @@ def is_ready(checks: Sequence[ReadinessCheck]) -> bool:
 def _python_check() -> ReadinessCheck:
     version = platform.python_version()
     bits = struct.calcsize("P") * 8
-    if sys.version_info < (3, 9):
+    if sys.version_info < (3, 11):
         return ReadinessCheck(
             "Python",
             "ERROR",
@@ -123,13 +123,13 @@ def _java_check(
             architecture,
         )
     major = _java_major_version(version)
-    if major is not None and major < 8:
+    if major is not None and major < 9:
         return (
             ReadinessCheck(
                 "Java",
                 "ERROR",
                 f"{version} ({architecture_name or 'unknown architecture'})",
-                "Install Java 8 or later.",
+                "Install Java 9 or later.",
             ),
             architecture,
         )
