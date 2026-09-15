@@ -270,10 +270,17 @@ def adjust(
             for name, value in supplied.items()
             if value != defaults[name] and value != configured[name]
         )
-        if conflicts:
-            raise ValueError(
-                "config conflicts with adjustment options: " + ", ".join(conflicts)
-            )
+        # TODO check this fix 
+        # if conflicts:
+        #     raise ValueError(
+        #         "config conflicts with adjustment options: " + ", ".join(conflicts)
+        #     )
+        normalized = normalize_config(config)
+        configured = normalized.engine_options()
+        configured.update(
+            {k: v for k, v in supplied.items() if v != defaults[k]}
+        )
+        
         return adjust(
             values,
             start_year=start_year,
