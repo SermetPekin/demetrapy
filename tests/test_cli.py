@@ -13,6 +13,7 @@ from demetrapy.engine import AdjustmentComponents, AdjustmentResult, OutputSerie
 from demetrapy.readiness import ReadinessCheck
 
 
+
 def adjustment_result(values_by_component, *, detailed=False):
     outputs = {
         name: OutputSeries(tuple(values), "Monthly", 2024, 1)
