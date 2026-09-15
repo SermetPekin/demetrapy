@@ -18,6 +18,7 @@ uv run python examples/run_all.py
 | --- | --- |
 | Adjust several DataFrame columns | `12_multi_variable_emissions.py` |
 | Use a calendar pool with per-series mappings | `13_full_config_calendar_pool.py` |
+| Explore a complete workflow interactively | `14_copy_run_inspect.ipynb` |
 | Inspect components, forecasts, diagnostics, and ARIMA | `02_detailed_results.py` |
 | Compare X13 and TRAMO/SEATS | `07_compare_methods.py` |
 | Build a CSV and audit workflow | `10_csv_workflow.py` |
@@ -39,6 +40,7 @@ uv run python examples/run_all.py
 | `11_quarterly_detailed_results.py` | quarterly detailed output and forward dates |
 | `12_multi_variable_emissions.py` | six component DataFrames for ten monthly targets |
 | `13_full_config_calendar_pool.py` | full parameters, shared variable pool, and target mappings |
+| `14_copy_run_inspect.ipynb` | runnable DataFrame, forecast, model, and chart walkthrough |
 
 ## Built-In Data
 
