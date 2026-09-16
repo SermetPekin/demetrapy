@@ -37,7 +37,7 @@ start after the last input date.
 
 Input files use regular ISO dates and one numeric value column:
 
-```csv
+```text
 date,value
 2019-01-01,101.2
 2019-02-01,103.8

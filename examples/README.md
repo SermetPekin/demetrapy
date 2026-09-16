@@ -12,6 +12,13 @@ Run the full set in isolated temporary directories:
 uv run python examples/run_all.py
 ```
 
+To run `14_copy_run_inspect.ipynb` from a cloned repository, install the
+optional Jupyter dependencies and select the resulting `.venv` as its kernel:
+
+```bash
+python -m pip install -e ".[notebook]"
+```
+
 ## Start Here
 
 | Goal | Example |

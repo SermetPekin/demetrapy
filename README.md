@@ -3,6 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/demetrapy)](https://pypi.org/project/demetrapy/)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
+[![Documentation Status](https://readthedocs.org/projects/demetrapy/badge/?version=latest)](https://demetrapy.readthedocs.io/en/latest/?badge=latest)
 
 Seasonal adjustment with JDemetra+ from Python. `demetrapy` runs X13 and
 TRAMO/SEATS on sequences, pandas objects, or CSV files and returns components,
@@ -23,6 +24,12 @@ Python 3.11+ and Java 9+ are required.
 ```bash
 python -m pip install demetrapy
 demetrapy check
+```
+
+To run the example notebook, install the optional Jupyter dependencies:
+
+```bash
+python -m pip install "demetrapy[notebook]"
 ```
 
 The first adjustment downloads the pinned JDemetra+ 2.2.6 core JAR to

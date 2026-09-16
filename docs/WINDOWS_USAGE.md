@@ -32,6 +32,13 @@ demetrapy --help
 demetrapy check
 ```
 
+To run the example notebook, install its optional dependencies in the same
+environment, then select `.venv\Scripts\python.exe` as the notebook kernel:
+
+```bat
+python -m pip install -e ".[notebook]"
+```
+
 ## Automatic JAR Download
 
 On the first calculation, `demetrapy` downloads this pinned JDemetra+ core

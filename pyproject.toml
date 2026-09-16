@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "demetrapy"
-version = "0.3.3"
+version = "0.3.4"
 description = "Python toolkit for seasonal adjustment with JDemetra+ X13 and TRAMO/SEATS"
 authors = [{ name = "Sermet Pekin", email = "sermet.pekin@gmail.com" }]
 readme = "README.md"
@@ -35,8 +35,19 @@ classifiers = [
 	"Topic :: Scientific/Engineering :: Information Analysis",
 ]
 
+[project.optional-dependencies]
+notebook = [
+	"ipykernel>=6,<8",
+	"notebook>=7,<8",
+]
+docs = [
+	"furo>=2024.8.6",
+	"myst-parser>=4,<5",
+	"sphinx>=8,<9",
+]
+
 [project.urls]
-Documentation = "https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md"
+Documentation = "https://demetrapy.readthedocs.io/"
 Issues = "https://github.com/SermetPekin/demetrapy/issues"
 Repository = "https://github.com/SermetPekin/demetrapy"
 
