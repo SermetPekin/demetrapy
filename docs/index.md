@@ -43,5 +43,5 @@ api
 ## Start exploring
 
 - Follow the [quickstart](https://github.com/SermetPekin/demetrapy/blob/main/docs/QUICKSTART.md) for a complete TRAMO/SEATS run.
-- Open the [copy, run, inspect notebook](https://github.com/SermetPekin/demetrapy/blob/main/examples/14_copy_run_inspect.ipynb).
+- Open the [copy, run, inspect notebook](https://github.com/SermetPekin/demetrapy/blob/main/examples/notebooks/14_copy_run_inspect.ipynb).
 - Browse the [example catalog](https://github.com/SermetPekin/demetrapy/tree/main/examples).

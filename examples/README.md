@@ -12,7 +12,7 @@ Run the full set in isolated temporary directories:
 uv run python examples/run_all.py
 ```
 
-To run `14_copy_run_inspect.ipynb` from a cloned repository, install the
+To run a notebook in `notebooks/` from a cloned repository, install the
 optional Jupyter dependencies and select the resulting `.venv` as its kernel:
 
 ```bash
@@ -23,7 +23,8 @@ python -m pip install -e ".[notebook]"
 
 | Goal | Example |
 | --- | --- |
-| Explore TRAMO/SEATS interactively | `14_copy_run_inspect.ipynb` |
+| Explore TRAMO/SEATS interactively | `notebooks/14_copy_run_inspect.ipynb` |
+| Review a batch and export an HTML report | `notebooks/17_batch_review_report.ipynb` |
 | Adjust ten DataFrame columns with TRAMO/SEATS | `12_multi_variable_emissions.py` |
 | Summarize a TRAMO/SEATS batch for follow-up | `15_batch_summary.py` |
 | Generate an interactive analyst report | `16_html_report.py` |
@@ -38,7 +39,8 @@ included in the catalog below.
 
 | File | Focus |
 | --- | --- |
-| `14_copy_run_inspect.ipynb` | runnable TRAMO/SEATS DataFrame, forecast, model, and chart walkthrough |
+| `notebooks/14_copy_run_inspect.ipynb` | runnable TRAMO/SEATS DataFrame, forecast, model, and chart walkthrough |
+| `notebooks/17_batch_review_report.ipynb` | summary triage, fitted-model inspection, and self-contained HTML review report |
 | `15_batch_summary.py` | one-row-per-series summary, follow-up filter, and CSV export |
 | `16_html_report.py` | self-contained HTML report with Plotly components, SI, diagnostics, and messages |
 | `12_multi_variable_emissions.py` | six TRAMO/SEATS component DataFrames for ten monthly targets |

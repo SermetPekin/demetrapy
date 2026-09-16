@@ -175,7 +175,7 @@ Ready-to-upload files are available in the
 - [Usage](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md)
 - [Configuration reference](https://github.com/SermetPekin/demetrapy/blob/main/docs/CONFIGURATION.md)
 - [Examples](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md)
-- [Copy, run, inspect notebook](https://github.com/SermetPekin/demetrapy/blob/main/examples/14_copy_run_inspect.ipynb)
+- [Copy, run, inspect notebook](https://github.com/SermetPekin/demetrapy/blob/main/examples/notebooks/14_copy_run_inspect.ipynb)
 - [Windows and offline setup](https://github.com/SermetPekin/demetrapy/blob/main/docs/WINDOWS_USAGE.md)
 - [Compatibility](https://github.com/SermetPekin/demetrapy/blob/main/docs/COMPATIBILITY.md)
 
