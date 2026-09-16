@@ -165,6 +165,7 @@ Ready-to-upload files are available in the
 
 ## Documentation
 
+- [Read the documentation](https://demetrapy.readthedocs.io/en/latest/)
 - [Quickstart](https://github.com/SermetPekin/demetrapy/blob/main/docs/QUICKSTART.md)
 - [Usage](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md)
 - [Configuration reference](https://github.com/SermetPekin/demetrapy/blob/main/docs/CONFIGURATION.md)
