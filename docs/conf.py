@@ -3,6 +3,7 @@ from importlib.metadata import version as package_version
 
 project = "demetrapy"
 author = "Sermet Pekin"
+copyright = "2026, Sermet Pekin"
 release = package_version("demetrapy")
 
 extensions = [
