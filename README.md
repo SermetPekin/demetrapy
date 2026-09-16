@@ -5,17 +5,17 @@
 [![CI](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml/badge.svg)](https://github.com/SermetPekin/demetrapy/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/demetrapy/badge/?version=latest)](https://demetrapy.readthedocs.io/en/latest/?badge=latest)
 
-Seasonal adjustment with JDemetra+ from Python. `demetrapy` runs X13 and
-TRAMO/SEATS on sequences, pandas objects, or CSV files and returns components,
-forecasts, diagnostics, and fitted model details in Python-native structures.
+Run JDemetra+ TRAMO/SEATS directly from Python. `demetrapy` turns pandas data
+into seasonally adjusted series, forecasts, diagnostics, and fitted-model
+metadata without a desktop workspace or XML workflow.
 
 ## Why demetrapy
 
-- Adjust every numeric column in a DataFrame with one call.
-- Keep real date indexes on historical and forecast output.
+- Run TRAMO/SEATS across every numeric DataFrame column with one call.
+- Receive components and forecasts as date-indexed pandas DataFrames.
+- Inspect diagnostics, processing messages, and fitted ARIMA models in Python.
 - Assign different user-defined calendar variables to each target series.
-- Use typed Python configuration, direct options, or the same JSON as the CLI.
-- Inspect the full JDemetra+ result without working with workspace XML.
+- Reproduce reviewed workflows with typed configuration or JSON.
 
 ## Install
 
@@ -35,31 +35,36 @@ python -m pip install "demetrapy[notebook]"
 The first adjustment downloads the pinned JDemetra+ 2.2.6 core JAR to
 `~/.cache/demetrapy`. Set `DEMETRAPY_JAR` to use a local copy instead.
 
-## Adjust a DataFrame
+## TRAMO/SEATS in Python
 
-`adjust_dataframe()` infers monthly, quarterly, half-yearly, or yearly
-frequency from a regular `DatetimeIndex`. Each input column is adjusted
-independently.
+This complete example adjusts ten synthetic monthly emissions series, requests
+a one-year forecast, and keeps detailed model results:
 
 ```python
 from demetrapy import TramoSeatsConfig, adjust_dataframe, load_monthly_emissions
 
-data = load_monthly_emissions()  # 120 dates x 10 sector columns
-config = TramoSeatsConfig(
-    spec="RSAfull",
-    preprocessing={"automodel": {"enabled": True}},
-    seats={"prediction_length": 12},
+data = load_monthly_emissions()
+result = adjust_dataframe(
+    data,
+    config=TramoSeatsConfig(
+        spec="RSAfull",
+        preprocessing={"automodel": {"enabled": True}},
+        seats={"prediction_length": 12},
+    ),
+    detailed=True,
 )
 
-result = adjust_dataframe(data, config=config)
+adjusted = result.seasonally_adjusted  # date index x 10 series
+forecasts = result.to_forecast_frame() # future component DataFrames
+power_model = result.for_series("power").arima_model
 
-sa = result.seasonally_adjusted             # 120 x 10
-calendar_adjusted = result.calendar_adjusted
-forecasts = result.to_forecast_frame()      # future dates
-combined = result.to_combined_frame()       # history + forecasts
+print(adjusted.tail())
+print(power_model.notation if power_model else "Model metadata unavailable")
 ```
 
-Every result contains six components:
+`adjust_dataframe()` infers monthly, quarterly, half-yearly, or yearly
+frequency from a regular `DatetimeIndex`. Each column is processed
+independently and every result contains six components:
 
 | Component | Alias | Meaning |
 | --- | --- | --- |
@@ -70,8 +75,9 @@ Every result contains six components:
 | `seasonal` | `s` | seasonal component |
 | `irregular` | `i` | irregular component |
 
-Use `to_compact_frame()` for aliases and `for_series(name)` for one column's
-model, diagnostics, messages, and low-level outputs.
+Use `to_forecast_frame()` for future values, `to_combined_frame()` for one
+history-plus-forecast table, and `for_series(name)` to inspect one fitted
+model's diagnostics and messages.
 
 ## Different Calendars for Different Series
 
@@ -90,10 +96,14 @@ result = adjust_dataframe(
 )
 ```
 
-See the complete 10-series example with full TRAMO/SEATS parameters:
+See the complete 10-series example with extended TRAMO/SEATS parameters:
 [examples/13_full_config_calendar_pool.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/13_full_config_calendar_pool.py).
 
-## Other Inputs
+## More Workflows
+
+TRAMO/SEATS is the primary workflow. The same API also supports single
+sequences, X13/X11, CSV automation, a command-line interface, and a Streamlit
+dashboard.
 
 A sequence has no dates, so its frequency and start must be explicit:
 
@@ -105,20 +115,23 @@ result = adjust(
     frequency="Quarterly",
     start_year=2010,
     start_period=1,
-    method="x13",
-    spec="RSA4",
+    method="tramoseats",
+    spec="RSAfull",
 )
 ```
 
-CSV files use the same engine:
+For batch integration, CSV files use the same processing engine:
 
 ```python
 from demetrapy import adjust_csv
 
-result = adjust_csv("input.csv", config="x13.json", output="adjusted.csv")
+result = adjust_csv("input.csv", config="tramoseats.json", output="adjusted.csv")
 ```
 
-## Command Line
+X13/X11 remains available through `X13Config` or `method="x13"` when that is
+the required specification.
+
+### Command Line
 
 ```bash
 demetrapy input.csv --output adjusted.csv
@@ -127,7 +140,7 @@ demetrapy validate config.json --data input.csv
 demetrapy input.csv --config config.json --output adjusted.csv --audit audit/
 ```
 
-## Dashboard
+### Dashboard
 
 The included Streamlit dashboard runs the same X13 and TRAMO/SEATS engine as
 the Python API. Start with a built-in monthly, quarterly, or calendar-adjusted

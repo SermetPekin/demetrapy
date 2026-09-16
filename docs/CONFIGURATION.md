@@ -18,7 +18,25 @@ For TRAMO/SEATS, the main stages are:
 For X13, RegARIMA preprocessing is followed by X11 filter-based decomposition
 instead of SEATS model-based decomposition.
 
-## Package Defaults
+## Choose TRAMO/SEATS
+
+Use a typed configuration for a reusable model-based workflow:
+
+```python
+from demetrapy import TramoSeatsConfig, adjust_dataframe
+
+config = TramoSeatsConfig(
+    spec="RSAfull",
+    preprocessing={"automodel": {"enabled": True}},
+    seats={"prediction_length": 12},
+)
+result = adjust_dataframe(data, config=config, detailed=True)
+```
+
+Unspecified nested values retain their JDemetra+ preset values. Explicit
+overrides are validated before Java processing begins.
+
+## Compatibility Defaults
 
 Calling `adjust()` without overrides uses:
 
@@ -31,15 +49,13 @@ Calling `adjust()` without overrides uses:
 | `benchmarking` | `false` |
 | `detailed` | `false` |
 
-Nested processing values that are not supplied retain the values from the
-selected JDemetra preset. For example, `method="tramoseats", spec="RSAfull"`
-uses the complete JDemetra `RSAfull` defaults unless individual sections are
-overridden.
+The no-argument X13 default is retained for compatibility. Select
+`TramoSeatsConfig` or pass `method="tramoseats"` explicitly for TRAMO/SEATS.
 
 Create a starter file and validate it before processing:
 
 ```bash
-demetrapy init-config --method x13 --output config.json
+demetrapy init-config --method tramoseats --output config.json
 demetrapy validate config.json --data input.csv
 ```
 
@@ -216,18 +232,6 @@ Prespecified outliers are separate:
 outliers=[{"type": "AO", "date": "2020-04-01"}]
 ```
 
-## X11 Options
-
-These top-level options apply only to X13:
-
-- `decomposition_mode`
-- `seasonal_filter`
-- `henderson_filter_length`
-- `lower_sigma`
-- `upper_sigma`
-- `forecast_horizon`
-- `backcast_horizon`
-
 ## SEATS Options
 
 The `seats` section applies only to TRAMO/SEATS:
@@ -245,6 +249,18 @@ The `seats` section applies only to TRAMO/SEATS:
 
 SEATS does not select the ARIMA model. It decomposes the model produced by the
 TRAMO preprocessing stage.
+
+## X11 Options
+
+These top-level options apply only to X13:
+
+- `decomposition_mode`
+- `seasonal_filter`
+- `henderson_filter_length`
+- `lower_sigma`
+- `upper_sigma`
+- `forecast_horizon`
+- `backcast_horizon`
 
 ## Detailed Results
 
@@ -282,10 +298,10 @@ for example, `result.for_series(target).arima_model` returns the fitted model.
 
 ## Complete Examples
 
-- [Basic X13 and TRAMO/SEATS](https://github.com/SermetPekin/demetrapy/blob/main/examples/01_basic_models.py)
-- [X13 configurations](https://github.com/SermetPekin/demetrapy/blob/main/examples/03_x13_models.py)
 - [TRAMO/SEATS configurations](https://github.com/SermetPekin/demetrapy/blob/main/examples/04_tramoseats_models.py)
-- [Quarterly models](https://github.com/SermetPekin/demetrapy/blob/main/examples/05_quarterly_models.py)
-- [UserDefined calendars](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py)
-- [Method comparison](https://github.com/SermetPekin/demetrapy/blob/main/examples/07_compare_methods.py)
 - [Advanced TRAMO/SEATS](https://github.com/SermetPekin/demetrapy/blob/main/examples/08_advanced_tramoseats.py)
+- [UserDefined calendars](https://github.com/SermetPekin/demetrapy/blob/main/examples/06_calendar_variables.py)
+- [Quarterly models](https://github.com/SermetPekin/demetrapy/blob/main/examples/05_quarterly_models.py)
+- [Basic TRAMO/SEATS and X13](https://github.com/SermetPekin/demetrapy/blob/main/examples/01_basic_models.py)
+- [Method comparison](https://github.com/SermetPekin/demetrapy/blob/main/examples/07_compare_methods.py)
+- [X13 configurations](https://github.com/SermetPekin/demetrapy/blob/main/examples/03_x13_models.py)

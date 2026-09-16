@@ -92,6 +92,20 @@ clear error.
 The complete implementation is in
 [examples/13_full_config_calendar_pool.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/13_full_config_calendar_pool.py).
 
+## Plotting
+
+Plot one fitted result without leaving the Python workflow:
+
+```python
+from demetrapy import plot_adjustment
+
+figure = plot_adjustment(result, target="power")
+figure.savefig("adjustment.png", dpi=150)
+```
+
+Omit `target` for a single-series result. Use `plot_adjustment_interactive()`
+for an interactive Plotly figure.
+
 ## Sequences
 
 Use `adjust()` for one sequence. Because values carry no dates, pass the
@@ -105,9 +119,9 @@ result = adjust(
     frequency="Quarterly",
     start_year=2020,
     start_period=1,
-    method="x13",
-    spec="RSA4",
-    forecast_horizon=4,
+    method="tramoseats",
+    spec="RSAfull",
+    seats={"prediction_length": 4},
     detailed=True,
 )
 
@@ -124,35 +138,40 @@ Choose one style per call.
 
 | Style | Use when |
 | --- | --- |
-| `X13Config` or `TramoSeatsConfig` | configuration lives in Python and is reused |
+| `TramoSeatsConfig` or `X13Config` | configuration lives in Python and is reused |
 | Direct keyword arguments | the call is short and local |
 | JSON or `AdjustmentConfig` | configuration is reviewed, stored, or shared with the CLI |
 
 ```python
-from demetrapy import X13Config, adjust_dataframe
+from demetrapy import TramoSeatsConfig, adjust_dataframe
 
 typed = adjust_dataframe(
     data,
-    config=X13Config(spec="RSA4", forecast_horizon=12),
+    config=TramoSeatsConfig(
+        spec="RSAfull",
+        seats={"prediction_length": 12},
+    ),
 )
 
 direct = adjust_dataframe(
     data,
-    method="x13",
-    spec="RSA4",
-    forecast_horizon=12,
+    method="tramoseats",
+    spec="RSAfull",
+    seats={"prediction_length": 12},
 )
 ```
 
 Do not combine `config=` with model-setting keyword arguments.
 
-## CSV and CLI
+## File Automation and CLI
+
+Use this interface when files are the integration boundary. For interactive
+analysis and multiple series, prefer `adjust_dataframe()`.
 
 The default CSV columns are `date` and `value`. Dates must be regular ISO
 `YYYY-MM-DD` values; observations must be finite numbers.
 
 ```bash
-demetrapy input.csv --output adjusted.csv
 demetrapy input.csv --method tramoseats --spec RSAfull --output adjusted.csv
 demetrapy input.csv --config config.json --output adjusted.csv
 ```
@@ -178,8 +197,8 @@ targets.
 ### Create and Validate Configuration
 
 ```bash
-demetrapy init-config --method x13 --output x13.json
 demetrapy init-config --method tramoseats --output tramoseats.json
+demetrapy init-config --method x13 --output x13.json
 demetrapy validate config.json --data input.csv
 demetrapy validate config.json --output normalized.json
 ```
@@ -215,16 +234,7 @@ result = adjust_csv(
 )
 ```
 
-## Plotting and Dashboard
-
-```python
-from demetrapy import plot_adjustment
-
-figure = plot_adjustment(result)
-figure.savefig("adjustment.png", dpi=150)
-```
-
-For multi-series results, pass `target="column_name"`.
+## Dashboard
 
 Launch the local dashboard with:
 

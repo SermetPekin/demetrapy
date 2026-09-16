@@ -12,45 +12,71 @@ demetrapy check
 The first adjustment downloads JDemetra+ 2.2.6 to
 `~/.cache/demetrapy`. The readiness check itself is read-only.
 
-## Python: Adjust Several Series
+## Run TRAMO/SEATS
 
-The built-in emissions dataset has ten monthly columns and a date index:
+The built-in synthetic emissions dataset has ten monthly columns and a date
+index. One call runs TRAMO/SEATS independently for every series:
 
 ```python
-from demetrapy import X13Config, adjust_dataframe, load_monthly_emissions
+from demetrapy import TramoSeatsConfig, adjust_dataframe, load_monthly_emissions
 
 data = load_monthly_emissions()
 result = adjust_dataframe(
     data,
-    config=X13Config(spec="RSA4", forecast_horizon=12),
+    config=TramoSeatsConfig(
+        spec="RSAfull",
+        preprocessing={"automodel": {"enabled": True}},
+        seats={"prediction_length": 12},
+    ),
+    detailed=True,
 )
 
-print(result.seasonally_adjusted.tail())
-print(result.calendar_adjusted.tail())
-print(result.to_forecast_frame().head())
+adjusted = result.seasonally_adjusted
+forecasts = result.to_forecast_frame()
+
+print(adjusted.tail())
+print(forecasts.xs("seasonally_adjusted", axis="columns", level="component"))
 ```
 
-The component attributes are DataFrames with the same ten columns. Forecasts
-start after the last input date.
+The component attributes are date-indexed DataFrames with the same ten columns.
+Forecasts begin after the last observation.
 
-## CLI: Adjust a CSV
+## Inspect the Fitted Model
 
-Input files use regular ISO dates and one numeric value column:
+Detailed mode preserves the fitted result for each DataFrame column:
 
-```text
-date,value
-2019-01-01,101.2
-2019-02-01,103.8
-2019-03-01,107.1
+```python
+power = result.for_series("power")
+
+print(power.specification)
+print(power.arima_model.notation if power.arima_model else "unavailable")
+print(power.diagnostics)
+print(power.messages)
 ```
 
-Run the default X13 `RSA4` adjustment:
+This keeps the adjustment, decomposition, diagnostics, and fitted-model
+metadata in the same Python workflow.
 
-```bash
-demetrapy input.csv --output adjusted.csv
+## Use Your DataFrame
+
+Replace the built-in data with a regular, increasing `DatetimeIndex`:
+
+```python
+import pandas as pd
+
+observations = pd.DataFrame(
+    {"sales": values},
+    index=pd.date_range("2019-01-01", periods=len(values), freq="MS"),
+)
+result = adjust_dataframe(observations, config=TramoSeatsConfig(spec="RSAfull"))
 ```
 
-For a reviewed configuration file:
+Monthly, quarterly, half-yearly, and yearly frequencies are supported.
+
+## Other Interfaces
+
+X13/X11 is available through `X13Config`. For automated file processing, the
+same package also provides a CLI and CSV API:
 
 ```bash
 demetrapy init-config --method tramoseats --output config.json
@@ -58,10 +84,8 @@ demetrapy validate config.json --data input.csv
 demetrapy input.csv --config config.json --output adjusted.csv
 ```
 
-The output columns are `y`, `ycal`, `sa`, `t`, `s`, and `i`.
-
 ## Next
 
-- Use [USAGE.md](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md) for API and CLI workflows.
+- Use [USAGE.md](https://github.com/SermetPekin/demetrapy/blob/main/docs/USAGE.md) for DataFrame results, calendars, plotting, and secondary interfaces.
 - Use [CONFIGURATION.md](https://github.com/SermetPekin/demetrapy/blob/main/docs/CONFIGURATION.md) for model options.
 - Browse the [examples](https://github.com/SermetPekin/demetrapy/blob/main/examples/README.md) for complete programs.
