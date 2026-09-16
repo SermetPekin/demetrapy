@@ -56,9 +56,12 @@ result = adjust_dataframe(
 
 adjusted = result.seasonally_adjusted  # date index x 10 series
 forecasts = result.to_forecast_frame() # future component DataFrames
+summary = result.to_summary_frame()    # one row per input series
+report = result.to_html_report("tramoseats_report.html")
 power_model = result.for_series("power").arima_model
 
 print(adjusted.tail())
+print(summary[["series", "arima", "diagnostic_count", "forecast_periods"]])
 print(power_model.notation if power_model else "Model metadata unavailable")
 ```
 
@@ -75,9 +78,11 @@ independently and every result contains six components:
 | `seasonal` | `s` | seasonal component |
 | `irregular` | `i` | irregular component |
 
-Use `to_forecast_frame()` for future values, `to_combined_frame()` for one
-history-plus-forecast table, and `for_series(name)` to inspect one fitted
-model's diagnostics and messages.
+Use `to_summary_frame()` to compare processing metadata across every target,
+`to_forecast_frame()` for future values, `to_combined_frame()` for one
+history-plus-forecast table, `to_html_report()` for an offline interactive
+review, and `for_series(name)` to inspect one fitted model's diagnostics and
+messages.
 
 ## Different Calendars for Different Series
 

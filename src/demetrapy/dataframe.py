@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import math
+from os import PathLike
+from pathlib import Path
 from typing import Any
 
 from .config import Config
@@ -78,6 +80,61 @@ class DataFrameAdjustmentResult:
                 level="component",
             )
         return pd.concat([history, forecasts]).sort_index()
+
+    def to_summary_frame(self) -> Any:
+        """Return one row of stable processing metadata per input series."""
+        pd = _pandas()
+        rows = []
+        for target, result in self.results.items():
+            model = result.arima_model
+            forecast = result.forecasts.seasonally_adjusted
+            rows.append(
+                {
+                    "series": target,
+                    "method": result.method,
+                    "specification": result.specification,
+                    "arima": model.notation if model is not None else None,
+                    "automatic": model.automatic if model is not None else None,
+                    "diagnostic_count": len(result.diagnostics),
+                    "message_count": len(result.messages),
+                    "forecast_periods": len(forecast.values) if forecast is not None else 0,
+                }
+            )
+        frame = pd.DataFrame.from_records(
+            rows,
+            columns=(
+                "series",
+                "method",
+                "specification",
+                "arima",
+                "automatic",
+                "diagnostic_count",
+                "message_count",
+                "forecast_periods",
+            ),
+        )
+        return frame.astype(
+            {
+                "method": "string",
+                "specification": "string",
+                "arima": "string",
+                "automatic": "boolean",
+                "diagnostic_count": "int64",
+                "message_count": "int64",
+                "forecast_periods": "int64",
+            }
+        )
+
+    def to_html_report(
+        self,
+        path: str | PathLike[str],
+        *,
+        title: str = "TRAMO/SEATS Batch Report",
+    ) -> Path:
+        """Write a self-contained interactive HTML report and return its path."""
+        from .reporting import write_html_report
+
+        return write_html_report(self, path, title=title)
 
     @property
     def observed(self) -> Any:

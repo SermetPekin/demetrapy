@@ -1,4 +1,5 @@
 import unittest
+from dataclasses import replace
 from unittest.mock import patch
 
 import pandas as pd
@@ -7,8 +8,10 @@ from demetrapy import (
     AdjustmentComponents,
     AdjustmentForecasts,
     AdjustmentResult,
+    ArimaModel,
     DataFrameAdjustmentResult,
     OutputSeries,
+    ProcessingMessage,
     X13Config,
     adjust_dataframe,
 )
@@ -159,6 +162,71 @@ class DataFrameAdjustmentTest(unittest.TestCase):
 
         self.assertTrue(result.to_forecast_frame().empty)
         pd.testing.assert_frame_equal(result.to_combined_frame(), result.components)
+
+    def test_summary_frame_reports_stable_batch_metadata_in_target_order(self) -> None:
+        sales = replace(
+            result_with_forecasts(
+                (1.0, 2.0),
+                (3.0, 4.0),
+                frequency="Monthly",
+                start_year=2024,
+                start_period=1,
+                forecast_year=2024,
+                forecast_period=3,
+            ),
+            diagnostics={"quality": "Good", "residuals": True},
+            messages=(ProcessingMessage("Info", "model", "tramoseats", "ok"),),
+            arima_model=ArimaModel(0, 1, 1, 0, 1, 1, 12, False, True),
+        )
+        orders = result_with_forecasts(
+            (10.0, 20.0),
+            (),
+            frequency="Monthly",
+            start_year=2024,
+            start_period=1,
+            forecast_year=2024,
+            forecast_period=3,
+        )
+        result = DataFrameAdjustmentResult(
+            components=pd.DataFrame(),
+            results={"sales": sales, "orders": orders},
+        )
+
+        summary = result.to_summary_frame()
+
+        self.assertEqual(summary["series"].tolist(), ["sales", "orders"])
+        self.assertEqual(summary["method"].tolist(), ["tramoseats", "tramoseats"])
+        self.assertEqual(summary["specification"].tolist(), ["RSA4", "RSA4"])
+        self.assertEqual(summary.loc[0, "arima"], "ARIMA(0,1,1)(0,1,1)[12]")
+        self.assertTrue(pd.isna(summary.loc[1, "arima"]))
+        self.assertTrue(summary.loc[0, "automatic"])
+        self.assertTrue(pd.isna(summary.loc[1, "automatic"]))
+        self.assertEqual(summary["diagnostic_count"].tolist(), [2, 0])
+        self.assertEqual(summary["message_count"].tolist(), [1, 0])
+        self.assertEqual(summary["forecast_periods"].tolist(), [2, 0])
+
+    def test_empty_summary_frame_retains_its_columns(self) -> None:
+        result = DataFrameAdjustmentResult(
+            components=pd.DataFrame(),
+            results={},
+        )
+
+        summary = result.to_summary_frame()
+
+        self.assertTrue(summary.empty)
+        self.assertEqual(
+            summary.columns.tolist(),
+            [
+                "series",
+                "method",
+                "specification",
+                "arima",
+                "automatic",
+                "diagnostic_count",
+                "message_count",
+                "forecast_periods",
+            ],
+        )
 
     def test_infers_quarterly_frequency_with_typed_config(self) -> None:
         index = pd.date_range("2015-01-01", periods=8, freq="QS")

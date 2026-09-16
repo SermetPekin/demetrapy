@@ -47,11 +47,43 @@ irregular = result.irregular
 compact = result.to_compact_frame()
 forecasts = result.to_forecast_frame()
 combined = result.to_combined_frame()
+summary = result.to_summary_frame()
 ```
 
 These are date-indexed DataFrames. For ten input columns, each historical
 component has ten columns. Forecast component dates begin after the final
 observation.
+
+The summary has one row per input series and stable columns for method,
+specification, ARIMA notation, automatic selection, diagnostic and message
+counts, and the number of seasonally adjusted forecast periods:
+
+```python
+review = summary[
+    ["series", "arima", "diagnostic_count", "message_count", "forecast_periods"]
+]
+```
+
+ARIMA fields are nullable when detailed fitted-model metadata is unavailable.
+
+### Interactive HTML Report
+
+Detailed batch results can be exported as one self-contained HTML file:
+
+```python
+report_path = result.to_html_report(
+    "tramoseats_report.html",
+    title="Monthly Sales TRAMO/SEATS Review",
+)
+```
+
+The report includes the batch summary, interactive original-versus-adjusted
+and component charts, JDemetra+'s SI output, fitted ARIMA metadata,
+diagnostics, and processing messages for every series. Plotly is embedded in
+the file, so the report can be opened without a server or internet connection.
+For additive results, SI is shown as original minus trend; for log-transformed
+results, it is shown as the original-to-trend ratio. Report generation requires
+`detailed=True`.
 
 `detailed=True` adds raw JDemetra+ series, diagnostics, messages, and the fitted
 ARIMA model:

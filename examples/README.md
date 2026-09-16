@@ -25,6 +25,8 @@ python -m pip install -e ".[notebook]"
 | --- | --- |
 | Explore TRAMO/SEATS interactively | `14_copy_run_inspect.ipynb` |
 | Adjust ten DataFrame columns with TRAMO/SEATS | `12_multi_variable_emissions.py` |
+| Summarize a TRAMO/SEATS batch for follow-up | `15_batch_summary.py` |
+| Generate an interactive analyst report | `16_html_report.py` |
 | Use a calendar pool with per-series mappings | `13_full_config_calendar_pool.py` |
 | Inspect components, forecasts, diagnostics, and ARIMA | `02_detailed_results.py` |
 | Configure advanced TRAMO/SEATS models | `08_advanced_tramoseats.py` |
@@ -37,6 +39,8 @@ included in the catalog below.
 | File | Focus |
 | --- | --- |
 | `14_copy_run_inspect.ipynb` | runnable TRAMO/SEATS DataFrame, forecast, model, and chart walkthrough |
+| `15_batch_summary.py` | one-row-per-series summary, follow-up filter, and CSV export |
+| `16_html_report.py` | self-contained HTML report with Plotly components, SI, diagnostics, and messages |
 | `12_multi_variable_emissions.py` | six TRAMO/SEATS component DataFrames for ten monthly targets |
 | `13_full_config_calendar_pool.py` | extended TRAMO/SEATS parameters, shared variable pool, and target mappings |
 | `02_detailed_results.py` | history, forecasts, diagnostics, messages, and fitted model |
