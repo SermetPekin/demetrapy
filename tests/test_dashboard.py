@@ -4,7 +4,10 @@ import unittest
 
 import pandas as pd
 
+from demetrapy import adjust_dataframe, load_monthly_retail
+from demetrapy.config import METHOD_SPECIFICATIONS
 from demetrapy.dashboard import (
+    _dashboard_preprocessing,
     _diagnostics_frame,
     _indexed_frame,
     _model_preprocessing,
@@ -22,6 +25,35 @@ class Upload:
 
 
 class DashboardHelperTest(unittest.TestCase):
+    def test_every_x13_menu_preset_runs_through_dashboard_options(self) -> None:
+        frame = load_monthly_retail()[["sales"]]
+
+        for specification in METHOD_SPECIFICATIONS["x13"]:
+            with self.subTest(specification=specification):
+                preprocessing = _dashboard_preprocessing(
+                    specification,
+                    None,
+                    "Automatic",
+                    {},
+                )
+                result = adjust_dataframe(
+                    frame,
+                    method="x13",
+                    spec=specification,
+                    preprocessing=preprocessing,
+                    detailed=True,
+                )
+
+                self.assertEqual(result.components.shape, (120, 6))
+                self.assertIn(
+                    ("sales", "final.sa"),
+                    result.detailed_series.columns,
+                )
+                self.assertEqual(
+                    result.for_series("sales").specification,
+                    specification,
+                )
+
     def test_loads_monthly_and_quarterly_samples(self) -> None:
         monthly, monthly_calendar, monthly_mapping = _sample_inputs(
             "Monthly retail"
@@ -98,6 +130,29 @@ class DashboardHelperTest(unittest.TestCase):
         self.assertEqual(explicit["transform"], {"function": "Log"})
         self.assertNotIn("arima", automatic)
         self.assertEqual(automatic["automodel"], {"pcr": 0.95, "enabled": True})
+
+    def test_x11_only_preset_omits_preprocessing(self) -> None:
+        preprocessing = _dashboard_preprocessing(
+            "RSAX11",
+            {"automodel": {"enabled": True}},
+            "Automatic",
+            {},
+        )
+
+        self.assertIsNone(preprocessing)
+
+    def test_regarima_preset_keeps_selected_preprocessing(self) -> None:
+        preprocessing = _dashboard_preprocessing(
+            "RSA4",
+            {"automodel": {"pcr": 0.95}},
+            "Automatic",
+            {},
+        )
+
+        self.assertEqual(
+            preprocessing,
+            {"automodel": {"pcr": 0.95, "enabled": True}},
+        )
 
 
 if __name__ == "__main__":

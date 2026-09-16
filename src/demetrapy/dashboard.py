@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from demetrapy.config import AdjustmentConfig
+from demetrapy.config import AdjustmentConfig, METHOD_SPECIFICATIONS
 from demetrapy.dataframe import DataFrameAdjustmentResult, adjust_dataframe
 from demetrapy.datasets import (
     load_monthly_retail,
@@ -180,24 +180,24 @@ def main() -> None:
             index=0 if config.method == "x13" else 1,
             horizontal=True,
         )
-        presets = (
-            ("RSAX11", "RSA0", "RSA1", "RSA2", "RSA3", "RSA4", "RSA5")
-            if method == "x13"
-            else ("RSA0", "RSA1", "RSA2", "RSA3", "RSA4", "RSA5", "RSAfull")
-        )
+        presets = METHOD_SPECIFICATIONS[method]
         default_spec = config.spec if config.spec in presets else "RSA4"
         specification = st.selectbox(
             "Preset", presets, index=presets.index(default_spec)
         )
         configured_arima = (config.preprocessing or {}).get("arima", {})
-        arima_mode = st.radio(
-            "ARIMA model",
-            ("Automatic", "Explicit"),
-            index=1 if configured_arima else 0,
-            horizontal=True,
-        )
+        arima_mode = "Automatic"
         explicit_arima = {}
-        if arima_mode == "Explicit":
+        if specification == "RSAX11":
+            st.caption("RSAX11 applies X11 decomposition without RegARIMA preprocessing.")
+        else:
+            arima_mode = st.radio(
+                "ARIMA model",
+                ("Automatic", "Explicit"),
+                index=1 if configured_arima else 0,
+                horizontal=True,
+            )
+        if specification != "RSAX11" and arima_mode == "Explicit":
             st.caption("Regular orders")
             regular_orders = st.columns(3)
             explicit_arima.update(
@@ -295,7 +295,8 @@ def main() -> None:
                     options = config.engine_options(ordinary_values)
                     for key in ("frequency", "method", "spec"):
                         options.pop(key, None)
-                    options["preprocessing"] = _model_preprocessing(
+                    options["preprocessing"] = _dashboard_preprocessing(
+                        specification,
                         options.get("preprocessing"),
                         arima_mode,
                         explicit_arima,
@@ -476,6 +477,17 @@ def _model_preprocessing(
     automodel["enabled"] = True
     settings["automodel"] = automodel
     return settings
+
+
+def _dashboard_preprocessing(
+    specification: str,
+    preprocessing: Any,
+    mode: str,
+    explicit_arima: dict[str, Any],
+) -> dict[str, Any] | None:
+    if specification == "RSAX11":
+        return None
+    return _model_preprocessing(preprocessing, mode, explicit_arima)
 
 
 def launch() -> None:

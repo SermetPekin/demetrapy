@@ -367,6 +367,13 @@ def _adjustment_result(
     }
     for name, result_key in component_keys.items():
         value = results.getData(result_key, TsData.class_)
+        if (
+            value is None
+            and name == "ycal"
+            and method.lower() == "x13"
+            and specification == "RSAX11"
+        ):
+            value = results.getData("y", TsData.class_)
         if value is None:
             information = "; ".join(str(item) for item in results.getProcessingInformation())
             detail = f": {information}" if information else ""
@@ -409,7 +416,7 @@ def _adjustment_result(
     for java_name, java_type in results.getDictionary().entrySet():
         name = str(java_name)
         if java_type == TsData.class_:
-            value = results.getData(name, TsData.class_)
+            value = _optional_result_data(results, name, TsData.class_)
             if value is not None:
                 series[name] = _output_series(value)
             continue
@@ -424,7 +431,7 @@ def _adjustment_result(
             "java.lang.Long",
             "java.lang.String",
         }:
-            value = results.getData(name, java_type)
+            value = _optional_result_data(results, name, java_type)
             if value is not None:
                 if isinstance(value, (bool, float, int, str)):
                     diagnostics[name] = value
@@ -470,6 +477,13 @@ def _optional_output_series(
         return None
     output = _output_series(value)
     return output if output.values else None
+
+
+def _optional_result_data(results: Any, name: str, java_type: Any) -> Any | None:
+    try:
+        return results.getData(name, java_type)
+    except Exception:
+        return None
 
 
 def _arima_model(

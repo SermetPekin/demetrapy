@@ -10,6 +10,7 @@ from demetrapy import (
     RESULT_SCHEMA_VERSION,
     X13Config,
 )
+from demetrapy.config import METHOD_SPECIFICATIONS
 from demetrapy.engine import AdjustmentResult, _jar_path, adjust
 
 
@@ -38,6 +39,47 @@ class JarPathTest(unittest.TestCase):
 
 
 class ProcessingTest(unittest.TestCase):
+    def test_every_advertised_preset_produces_detailed_components(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(120)]
+
+        for method, specifications in METHOD_SPECIFICATIONS.items():
+            for specification in specifications:
+                with self.subTest(method=method, specification=specification):
+                    result = adjust(
+                        values,
+                        start_year=2015,
+                        method=method,
+                        spec=specification,
+                        detailed=True,
+                    )
+
+                    self.assertEqual(result.method, method)
+                    self.assertEqual(result.specification, specification)
+                    self.assertEqual(tuple(result.to_compact_dict()), COMPACT_COMPONENTS)
+                    self.assertTrue(
+                        all(
+                            len(component) == len(values)
+                            for component in result.to_compact_dict().values()
+                        )
+                    )
+                    self.assertIn("final.sa", result.series)
+
+    def test_processes_x11_without_regarima_preprocessing(self) -> None:
+        values = [100 + index * 0.2 + (index % 12) for index in range(120)]
+
+        result = adjust(
+            values,
+            start_year=2015,
+            method="x13",
+            spec="RSAX11",
+            detailed=True,
+        )
+
+        self.assertEqual(result.specification, "RSAX11")
+        self.assertEqual(result.calendar_adjusted, result.observed)
+        self.assertEqual(len(result.seasonally_adjusted.values), 120)
+        self.assertIn("final.sa", result.series)
+
     def test_processes_method_specific_config(self) -> None:
         values = [100 + index * 0.2 + (index % 12) for index in range(120)]
 
