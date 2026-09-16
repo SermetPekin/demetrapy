@@ -141,7 +141,7 @@ print(result.seasonally_adjusted.values)
 ## Test the Installation
 
 ```bat
-python -m unittest discover -s tests
+demetrapy check
 ```
 
 ## Troubleshooting
