@@ -1,0 +1,13 @@
+{
+  "source_application": "JDemetra+",
+  "source_application_version": null,
+  "method": "X13",
+  "specification": "RSA5",
+  "frequency": "Quarterly",
+  "settings": "All settings other than the specification use JDemetra+ defaults.",
+  "input": "demetrapy.load_quarterly_production()",
+  "export": "demetra_expected.csv",
+  "history_periods": 80,
+  "forecast_periods": 4,
+  "notes": "Reference exported independently from the JDemetra+ desktop application. Record the JDemetra+ version when known."
+}
