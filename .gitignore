@@ -14,3 +14,11 @@ bulk_run_output/
 csv_workflow_output/
 example_output/
 hs_err_pid*.log
+
+# strict part
+# -------------
+ignore*.*
+ignore*/
+--*/
+--*.*
+# -------------
