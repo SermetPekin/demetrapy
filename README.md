@@ -181,3 +181,11 @@ Ready-to-upload files are available in the
 
 `demetrapy` is an independent interface to JDemetra+ and is not an official
 publication of the JDemetra+ project.
+
+Alternative Solutions
+
+If you're exploring other ways to interact with JDemetra, consider these official solutions:
+
+- For R users: Check out [rjdemetra](https://github.com/rjdverse/rjdemetra), the official R interface for JDemetra.
+- For CLI recalculations: [JWSACruncher](https://github.com/jdemetra/jwsacruncher) is the official command-line tool to re-calculate existing Demetra workspaces.
+
