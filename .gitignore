@@ -15,6 +15,7 @@ csv_workflow_output/
 example_output/
 hs_err_pid*.log
 .DS_Store
+/.local/
 
 # strict part
 # -------------

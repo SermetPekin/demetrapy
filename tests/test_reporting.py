@@ -99,6 +99,20 @@ class HtmlReportTest(unittest.TestCase):
                     Path(directory) / "report.html"
                 )
 
+    def test_allows_missing_si_detail_output(self) -> None:
+        result = batch_result()
+        result.detailed_series.drop(
+            columns=[("sales", "decomposition.si_cmp")],
+            inplace=True,
+        )
+
+        with TemporaryDirectory() as directory:
+            path = result.to_html_report(Path(directory) / "report.html")
+            html = path.read_text(encoding="utf-8")
+
+        self.assertIn("SI detail output is unavailable", html)
+        self.assertIn("Unavailable for this specification", html)
+
 
 if __name__ == "__main__":
     unittest.main()

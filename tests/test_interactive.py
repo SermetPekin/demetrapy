@@ -39,7 +39,14 @@ class InteractivePlotTest(unittest.TestCase):
         self.assertEqual(len(figure.data), 10)
         self.assertEqual(figure.layout.hovermode, "x unified")
         self.assertEqual(figure.layout.title.text, "Sales")
-        self.assertEqual(figure.data[2].line.dash, "dash")
+        self.assertEqual(figure.data[2].line.dash, "dot")
+        self.assertEqual(figure.layout.xaxis4.title.text, "Date")
+        self.assertEqual(figure.layout.xaxis4.tickformat, "%b\n%Y")
+        self.assertTrue(figure.layout.xaxis.showticklabels)
+        self.assertIn("Date: %{x|%B %Y}", figure.data[0].hovertemplate)
+        self.assertGreaterEqual(len(figure.layout.shapes), 8)
+        self.assertEqual(figure.layout.annotations[-1].text, "Forecast")
+        self.assertEqual(figure.layout.annotations[0].xanchor, "left")
 
     def test_requires_target_for_multi_series_dataframe(self) -> None:
         columns = pd.MultiIndex.from_product(
