@@ -50,10 +50,14 @@ def write_html_report(
 
         target_frame = result.detailed_series[target]
         si_figure, si_label = _si_figure(target_frame, series_result, target, go)
-        si_html = si_figure.to_html(
-            full_html=False,
-            include_plotlyjs=False,
-            config={"displaylogo": False, "responsive": True},
+        si_html = (
+            si_figure.to_html(
+                full_html=False,
+                include_plotlyjs=False,
+                config={"displaylogo": False, "responsive": True},
+            )
+            if si_figure is not None
+            else "<p>SI detail output is unavailable for this specification.</p>"
         )
         diagnostics = pd.DataFrame(
             series_result.diagnostics.items(),
@@ -138,10 +142,10 @@ def write_html_report(
     return output
 
 
-def _si_figure(frame: Any, result: Any, target: Any, go: Any) -> tuple[Any, str]:
+def _si_figure(frame: Any, result: Any, target: Any, go: Any) -> tuple[Any | None, str]:
     name = "decomposition.si_cmp"
     if name not in frame or not frame[name].notna().any():
-        raise ValueError(f"SI output is unavailable for series: {target}")
+        return None, "Unavailable for this specification"
     values = frame[name].dropna()
     multiplicative = bool(result.diagnostics.get("preprocessing.log", False))
     label = "SI ratio (original / trend)" if multiplicative else "SI component (original - trend)"

@@ -159,11 +159,16 @@ demetrapy-dashboard
 From the dashboard you can:
 
 - adjust one or several target columns;
+- preview and validate observations before processing;
 - upload JSON configuration and a separate calendar-variable pool;
 - map different calendar variables to each target;
+- control transformation, outlier detection, and forecast horizon;
 - inspect interactive components and forecasts;
+- retain and compare the 10 most recent runs in the current session;
 - review diagnostics, processing messages, and fitted models;
-- download result tables.
+- compare X13 and TRAMO/SEATS with shared settings;
+- download result tables, batch summaries, self-contained HTML reports, and a
+    Python script that reproduces the latest successful run.
 
 Ready-to-upload files are available in the
 [dashboard example directory](https://github.com/SermetPekin/demetrapy/blob/main/examples/dashboard/README.md).

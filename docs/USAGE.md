@@ -274,8 +274,28 @@ Launch the local dashboard with:
 demetrapy-dashboard
 ```
 
-It accepts observations, JSON configuration, and an optional calendar-pool
-CSV, then exposes charts, diagnostics, model details, and downloads.
+It accepts uploaded observations, pasted numeric values, JSON configuration,
+and an optional calendar-pool CSV. Before processing, it previews the selected
+data and checks its date range, frequency, missing values, non-finite values,
+and recommended history length. For pasted data, enter one observation per row
+with comma- or space-separated series, then select the frequency and start
+period. Column names are optional.
+
+The processing controls select the transformation, AO/LS/TC outlier detection,
+forecast horizon, and automatic or explicit ARIMA model. Results include
+interactive charts, diagnostics, messages, a multi-series batch summary,
+downloadable CSV files, and a self-contained HTML report. The **Batch Summary**
+tab can also download a Python script containing the latest successful run's
+selected data, calendar inputs, and engine configuration. Running the script
+repeats the adjustment and writes component, forecast, and summary CSV files.
+The **Compare Methods** tab runs X13 and TRAMO/SEATS with their shared RSA4
+preset and reports RMSE, maximum absolute difference, and correlation.
+
+Interactive component charts show formatted dates on every panel, full dates in
+hover details, and a shaded forecast region. The **Run History** tab retains the
+10 most recent successful adjustments in the current browser session. Select
+two runs to compare their settings and seasonally adjusted series, review RMSE,
+maximum absolute difference, and correlation, or download the aligned values.
 
 ## Troubleshooting
 
