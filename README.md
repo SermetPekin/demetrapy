@@ -136,6 +136,42 @@ result = adjust_csv("input.csv", config="tramoseats.json", output="adjusted.csv"
 X13/X11 remains available through `X13Config` or `method="x13"` when that is
 the required specification.
 
+### Compare Methods and Specifications
+
+Run any two or more labeled typed configurations against the same data:
+
+```python
+from demetrapy import (
+    TramoSeatsConfig,
+    X13Config,
+    compare_adjustments,
+    load_monthly_retail,
+    plot_comparison,
+)
+
+comparison = compare_adjustments(
+    load_monthly_retail()[["sales"]],
+    candidates={
+        "x13-rsa4": X13Config(spec="RSA4"),
+        "tramoseats-rsafull": TramoSeatsConfig(spec="RSAfull"),
+    },
+)
+
+print(comparison.metrics)
+print(comparison.for_series("sales").tail())
+figure = plot_comparison(comparison, "sales")
+figure.savefig("method_comparison.png", dpi=150)
+```
+
+`components` contains aligned results with candidate, series, and component
+column levels. `metrics` reports pairwise RMSE, maximum absolute difference,
+mean difference, and correlation for every series and component. The original
+results remain available through `for_candidate()` for detailed inspection.
+Metrics describe numerical differences; they do not select a statistically
+preferred specification. `plot_comparison()` plots aligned candidates and a
+difference panel relative to the first candidate; use `component=` to compare
+trend, seasonal, irregular, or other components.
+
 ### Command Line
 
 ```bash

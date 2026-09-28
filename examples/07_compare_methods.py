@@ -1,52 +1,36 @@
 """Compare X13 and TRAMO/SEATS components on the same monthly series."""
 
-import math
 from pathlib import Path
 
-
-
-import pandas as pd
-
-from demetrapy import COMPACT_COMPONENTS, adjust_dataframe, load_monthly_retail
-
-
-def comparison_metrics(left: pd.Series, right: pd.Series) -> dict[str, float]:
-    difference = left - right
-    return {
-        "rmse": float(math.sqrt((difference**2).mean())),
-        "max_absolute_difference": float(difference.abs().max()),
-        "correlation": float(left.corr(right)),
-    }
+from demetrapy import (
+    TramoSeatsConfig,
+    X13Config,
+    compare_adjustments,
+    load_monthly_retail,
+    plot_comparison,
+)
 
 
 def main() -> None:
     data = load_monthly_retail()[["sales"]]
-    results = {
-        method: adjust_dataframe(data, method=method, spec="RSA4")
-        .to_compact_frame()["sales"]
-        for method in ("x13", "tramoseats")
-    }
-    comparison = pd.concat(
-        {
-            "x13": results["x13"],
-            "tramoseats": results["tramoseats"],
-            "difference": results["x13"] - results["tramoseats"],
+    comparison = compare_adjustments(
+        data,
+        candidates={
+            "x13-rsa4": X13Config(spec="RSA4"),
+            "tramoseats-rsa4": TramoSeatsConfig(spec="RSA4"),
         },
-        axis=1,
     )
-    metrics = pd.DataFrame(
-        {
-            component: comparison_metrics(
-                results["x13"][component], results["tramoseats"][component]
-            )
-            for component in COMPACT_COMPONENTS
-        }
-    ).T.rename_axis("component")
 
     output_path = Path("method_comparison.csv")
-    comparison.to_csv(output_path)
-    print(metrics.round(6))
+    comparison.components.to_csv(output_path)
+    plot_path = Path("method_comparison.png")
+    figure = plot_comparison(comparison, "sales")
+    figure.savefig(plot_path, dpi=150)
+    print(comparison.metrics.round(6).to_string(index=False))
+    print("\nSeasonally adjusted values:")
+    print(comparison.for_series("sales").tail().round(3))
     print(f"\nSaved aligned results to {output_path.resolve()}")
+    print(f"Saved comparison plot to {plot_path.resolve()}")
 
 
 if __name__ == "__main__":

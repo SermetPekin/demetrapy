@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from .comparison import AdjustmentComparisonResult
 from .dataframe import DataFrameAdjustmentResult, _output_frame
 from .engine import AdjustmentResult
 
@@ -68,6 +69,67 @@ def plot_adjustment(
         axes[4].legend(loc="best", ncols=3)
 
     axes[-1].set_xlabel(frame.index.name or "Period")
+    for axis in axes:
+        axis.set_facecolor("#ffffff")
+        axis.tick_params(colors="#252b31")
+        axis.xaxis.label.set_color("#252b31")
+        axis.yaxis.label.set_color("#252b31")
+        axis.grid(axis="y", color="#c5ced6", linewidth=0.8)
+        axis.spines["left"].set_color("#66717c")
+        axis.spines["bottom"].set_color("#66717c")
+        axis.spines[["top", "right"]].set_visible(False)
+    figure.patch.set_facecolor("#f7f9fa")
+    return figure
+
+
+def plot_comparison(
+    result: AdjustmentComparisonResult,
+    series: Any,
+    *,
+    component: str = "seasonally_adjusted",
+    title: str | None = None,
+    figsize: tuple[float, float] = (12.0, 7.0),
+) -> Any:
+    """Plot aligned candidates and differences from the first candidate."""
+    plt, _ = _plot_dependencies()
+    frame = result.for_series(series, component).dropna(how="all")
+    if frame.empty:
+        raise ValueError("comparison has no values to plot")
+
+    reference = frame.columns[0]
+    figure, axes = plt.subplots(
+        2,
+        1,
+        figsize=figsize,
+        sharex=True,
+        layout="constrained",
+        height_ratios=(2.0, 1.0),
+    )
+    colors = plt.get_cmap("tab10").colors
+    for position, candidate in enumerate(frame.columns):
+        axes[0].plot(
+            frame.index,
+            frame[candidate],
+            label=str(candidate),
+            color=colors[position % len(colors)],
+            linewidth=1.75,
+        )
+        if candidate != reference:
+            axes[1].plot(
+                frame.index,
+                frame[candidate] - frame[reference],
+                label=f"{candidate} - {reference}",
+                color=colors[position % len(colors)],
+                linewidth=1.5,
+            )
+
+    axes[0].set_title(title or f"{series}: {component.replace('_', ' ')}")
+    axes[0].set_ylabel("Value")
+    axes[0].legend(loc="best")
+    axes[1].set_ylabel("Difference")
+    axes[1].set_xlabel(frame.index.name or "Period")
+    axes[1].axhline(0, color="#66717c", linewidth=1.0, zorder=0)
+    axes[1].legend(loc="best")
     for axis in axes:
         axis.set_facecolor("#ffffff")
         axis.tick_params(colors="#252b31")
