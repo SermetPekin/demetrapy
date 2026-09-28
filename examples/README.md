@@ -31,6 +31,7 @@ python -m pip install -e ".[notebook]"
 | Use a calendar pool with per-series mappings | `13_full_config_calendar_pool.py` |
 | Adjust synthetic tourism with calendar effects | `18_tourism_with_calendars.py` |
 | Adjust industrial production with target calendars | `19_industrial_production_with_calendars.py` |
+| Warn when an RSA5 result needs review | `20_tramoseats_rsa5_quality_warning.py` |
 | Inspect components, forecasts, diagnostics, and ARIMA | `02_detailed_results.py` |
 | Configure advanced TRAMO/SEATS models | `08_advanced_tramoseats.py` |
 
@@ -49,6 +50,7 @@ included in the catalog below.
 | `13_full_config_calendar_pool.py` | extended TRAMO/SEATS parameters, shared variable pool, and target mappings |
 | `18_tourism_with_calendars.py` | tourism adjustment with working-day, holiday, and moving-Easter variables |
 | `19_industrial_production_with_calendars.py` | industrial adjustment with working-day, shutdown, and heating variables |
+| `20_tramoseats_rsa5_quality_warning.py` | TRAMO/SEATS RSA5 review of processing messages, residual seasonality, trading-day effects, forecast stability, and decomposition fallbacks |
 | `02_detailed_results.py` | history, forecasts, diagnostics, messages, and fitted model |
 | `04_tramoseats_models.py` | automatic and explicit ARIMA with SEATS settings |
 | `08_advanced_tramoseats.py` | advanced TRAMO/SEATS and a user-defined calendar |
