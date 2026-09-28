@@ -148,6 +148,16 @@ figure.savefig("adjustment.png", dpi=150)
 Omit `target` for a single-series result. Use `plot_adjustment_interactive()`
 for an interactive Plotly figure.
 
+Plot candidates from `compare_adjustments()` with their differences from the
+first candidate:
+
+```python
+from demetrapy import plot_comparison
+
+figure = plot_comparison(comparison, "sales", component="seasonally_adjusted")
+figure.savefig("method_comparison.png", dpi=150)
+```
+
 ## Sequences
 
 Use `adjust()` for one sequence. Because values carry no dates, pass the

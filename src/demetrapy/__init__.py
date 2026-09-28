@@ -30,10 +30,11 @@ from .datasets import (
 	load_tourism_with_calendars,
 )
 from .interactive import plot_adjustment_interactive
-from .plotting import plot_adjustment
+from .plotting import plot_adjustment, plot_comparison
 
 __all__ = [
 	"AdjustmentComponents",
+	"AdjustmentComparisonResult",
 	"AdjustmentConfig",
 	"AdjustmentForecasts",
 	"AdjustmentResult",
@@ -54,6 +55,7 @@ __all__ = [
 	"adjust",
 	"adjust_csv",
 	"adjust_dataframe",
+	"compare_adjustments",
 	"load_emissions_with_calendars",
 	"load_industrial_production_with_calendars",
 	"load_monthly_emissions",
@@ -64,5 +66,6 @@ __all__ = [
 	"load_retail_with_calendars",
 	"load_tourism_with_calendars",
 	"plot_adjustment",
+	"plot_comparison",
 	"plot_adjustment_interactive",
 ]
