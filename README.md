@@ -54,13 +54,17 @@ result = adjust_dataframe(
     detailed=True,
 )
 
-adjusted = result.seasonally_adjusted  # date index x 10 series
-forecasts = result.to_forecast_frame() # future component DataFrames
-summary = result.to_summary_frame()    # one row per input series
+sa = result.sa                                   # same index/columns as data
+ycal = result.ycal                               # same index/columns as data
+adjusted_forecast = result.adjusted_forecast     # adjusted forecast only
+all_forecasts = result.to_forecast_frame()       # every forecast component
+summary = result.to_summary_frame()              # one row per input series
 report = result.to_html_report("tramoseats_report.html")
 power_model = result.for_series("power").arima_model
 
-print(adjusted.tail())
+print(sa.tail())
+print(ycal.tail())
+print(adjusted_forecast.head())
 print(summary[["series", "arima", "diagnostic_count", "forecast_periods"]])
 print(power_model.notation if power_model else "Model metadata unavailable")
 ```
@@ -78,11 +82,26 @@ independently and every result contains six components:
 | `seasonal` | `s` | seasonal component |
 | `irregular` | `i` | irregular component |
 
+Select any component by compact or descriptive name, join its history and
+forecast, inspect processing status, or export selected components:
+
+```python
+trend = result.component("t")
+sa_forecast = result.forecast("sa")
+complete_sa = result.combined("sa")
+status = result.status
+
+result.export("adjusted.csv", components=["sa"])
+result.export("adjusted.xlsx", components=["sa", "ycal"])
+```
+
 Use `to_summary_frame()` to compare processing metadata across every target,
 `to_forecast_frame()` for future values, `to_combined_frame()` for one
 history-plus-forecast table, `to_html_report()` for an offline interactive
 review, and `for_series(name)` to inspect one fitted model's diagnostics and
-messages.
+messages. `sa` and `adjusted` both alias the explicit `seasonally_adjusted`
+component; `ycal` aliases `calendar_adjusted`. XLSX exports use one sheet per
+selected component.
 
 ## Different Calendars for Different Series
 
@@ -103,6 +122,17 @@ result = adjust_dataframe(
 
 See the complete 10-series example with extended TRAMO/SEATS parameters:
 [examples/13_full_config_calendar_pool.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/13_full_config_calendar_pool.py).
+
+## Built-In Synthetic Data
+
+All dataset loaders return fresh, deterministic pandas objects and require no
+network access. `load_monthly_tourism()` provides hotel nights and arrivals
+with multiplicative seasonality, a moving Easter effect, a level shift, and a
+temporary shock. `load_monthly_industrial_production()` provides manufacturing,
+mining, and utilities with working-day variation, a recession dip, and
+additive outliers. Calendar-aware variants are available through
+`load_tourism_with_calendars()` and
+`load_industrial_production_with_calendars()`.
 
 ## More Workflows
 

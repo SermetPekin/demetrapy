@@ -1,5 +1,7 @@
 import unittest
 from dataclasses import replace
+from pathlib import Path
+import tempfile
 from unittest.mock import patch
 
 import pandas as pd
@@ -52,6 +54,52 @@ def result_with_forecasts(
 
 
 class DataFrameAdjustmentTest(unittest.TestCase):
+    def test_exports_selected_components_to_csv_and_excel(self) -> None:
+        index = pd.date_range("2024-01-01", periods=2, freq="MS")
+        components = pd.DataFrame(
+            {
+                (target, component): [1.0, 2.0]
+                for target in ("sales", "orders")
+                for component in (
+                    "observed",
+                    "calendar_adjusted",
+                    "seasonally_adjusted",
+                    "trend",
+                    "seasonal",
+                    "irregular",
+                )
+            },
+            index=index,
+        )
+        components.columns = pd.MultiIndex.from_tuples(
+            components.columns,
+            names=["series", "component"],
+        )
+        result = DataFrameAdjustmentResult(components=components, results={})
+
+        with tempfile.TemporaryDirectory() as directory:
+            output_directory = Path(directory)
+            csv_path = result.export(
+                output_directory / "adjusted.csv",
+                components=["sa"],
+            )
+            csv_frame = pd.read_csv(csv_path, index_col=0)
+            self.assertEqual(csv_frame.shape, (2, 2))
+            self.assertEqual(list(csv_frame.columns), ["sales", "orders"])
+
+            excel_path = result.export(output_directory / "adjusted.xlsx")
+            with pd.ExcelFile(excel_path) as workbook:
+                self.assertEqual(workbook.sheet_names, ["sa", "ycal"])
+                self.assertEqual(
+                    pd.read_excel(workbook, sheet_name="sa", index_col=0).shape,
+                    (2, 2),
+                )
+
+            with self.assertRaisesRegex(ValueError, "csv or .xlsx"):
+                result.export(output_directory / "adjusted.txt")
+            with self.assertRaisesRegex(ValueError, "at least one"):
+                result.export(output_directory / "adjusted.csv", components=[])
+
     def test_quarterly_forecast_and_combined_frames_use_future_domain(self) -> None:
         index = pd.date_range("2022-04-01", periods=4, freq="QS")
         components = pd.DataFrame(
@@ -100,6 +148,21 @@ class DataFrameAdjustmentTest(unittest.TestCase):
             [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
         )
         pd.testing.assert_frame_equal(result.components, components)
+        pd.testing.assert_frame_equal(
+            result.component("sa"),
+            result.component("seasonally_adjusted"),
+        )
+        pd.testing.assert_frame_equal(
+            result.forecast("sa_f"),
+            result.forecast("seasonally_adjusted"),
+        )
+        self.assertEqual(result.combined("sa").shape, (6, 1))
+        self.assertEqual(
+            result.combined("sa")["production"].tolist(),
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        )
+        with self.assertRaisesRegex(ValueError, "unknown adjustment component"):
+            result.component("missing")
 
     def test_forecast_frame_supports_partial_components_and_multiple_targets(self) -> None:
         index = pd.date_range("2024-01-01", periods=2, freq="MS")
@@ -145,9 +208,25 @@ class DataFrameAdjustmentTest(unittest.TestCase):
         forecasts = result.to_forecast_frame()
 
         self.assertEqual(forecasts.shape, (2, 7))
+        pd.testing.assert_frame_equal(
+            result.adjusted_forecast,
+            forecasts.xs(
+                "seasonally_adjusted",
+                axis="columns",
+                level="component",
+            ),
+        )
         self.assertEqual(
             forecasts[("orders", "seasonally_adjusted")].tolist(),
             [30.0, 40.0],
+        )
+        self.assertIs(
+            result.for_series("sales").adjusted_forecast,
+            result.for_series("sales").forecasts.seasonally_adjusted,
+        )
+        self.assertIs(
+            result.for_series("sales").adjusted,
+            result.for_series("sales").seasonally_adjusted,
         )
         self.assertNotIn(("orders", "observed"), forecasts.columns)
 
@@ -161,6 +240,7 @@ class DataFrameAdjustmentTest(unittest.TestCase):
         result = adjust_dataframe(data, method="x13", forecast_horizon=0)
 
         self.assertTrue(result.to_forecast_frame().empty)
+        self.assertTrue(result.adjusted_forecast.empty)
         pd.testing.assert_frame_equal(result.to_combined_frame(), result.components)
 
     def test_summary_frame_reports_stable_batch_metadata_in_target_order(self) -> None:
@@ -193,6 +273,7 @@ class DataFrameAdjustmentTest(unittest.TestCase):
         )
 
         summary = result.to_summary_frame()
+        pd.testing.assert_frame_equal(result.status, summary)
 
         self.assertEqual(summary["series"].tolist(), ["sales", "orders"])
         self.assertEqual(summary["method"].tolist(), ["tramoseats", "tramoseats"])
@@ -399,6 +480,18 @@ class DataFrameAdjustmentTest(unittest.TestCase):
                     ["y", "ycal", "sa", "t", "s", "i"],
                 )
                 self.assertEqual(result.seasonally_adjusted.shape, (120, 1))
+                pd.testing.assert_frame_equal(
+                    result.adjusted,
+                    result.seasonally_adjusted,
+                )
+                pd.testing.assert_frame_equal(result.sa, result.seasonally_adjusted)
+                pd.testing.assert_frame_equal(result.ycal, result.calendar_adjusted)
+                self.assertEqual(result.sa.shape, data.shape)
+                self.assertEqual(result.ycal.shape, data.shape)
+                self.assertTrue(result.sa.index.equals(data.index))
+                self.assertTrue(result.ycal.index.equals(data.index))
+                self.assertTrue(result.sa.columns.equals(data.columns))
+                self.assertTrue(result.ycal.columns.equals(data.columns))
 
     def test_detailed_result_extends_dataframe_into_forecast_domain(self) -> None:
         target_index = pd.date_range("2015-01-01", periods=120, freq="MS")

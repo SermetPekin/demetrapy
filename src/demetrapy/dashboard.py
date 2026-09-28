@@ -13,9 +13,13 @@ from typing import Any
 from demetrapy.config import AdjustmentConfig, METHOD_SPECIFICATIONS, X11_OPTIONS
 from demetrapy.dataframe import DataFrameAdjustmentResult, adjust_dataframe
 from demetrapy.datasets import (
+    load_industrial_production_with_calendars,
+    load_monthly_industrial_production,
     load_monthly_retail,
+    load_monthly_tourism,
     load_quarterly_production,
     load_retail_with_calendars,
+    load_tourism_with_calendars,
 )
 from demetrapy.interactive import plot_adjustment_interactive
 
@@ -24,8 +28,12 @@ _DATA_SOURCES = (
     "Upload CSV",
     "Paste values",
     "Monthly retail",
+    "Monthly tourism",
+    "Monthly industrial production",
     "Quarterly production",
     "Retail with calendars",
+    "Tourism with calendars",
+    "Industrial production with calendars",
 )
 
 _PASTED_FREQUENCIES = ("Monthly", "Quarterly", "HalfYearly", "Yearly")
@@ -910,19 +918,28 @@ def _sample_inputs(
 ) -> tuple[Any, Any | None, dict[Any, list[Any]]]:
     if name == "Monthly retail":
         return load_monthly_retail().reset_index(), None, {}
+    if name == "Monthly tourism":
+        return load_monthly_tourism().reset_index(), None, {}
+    if name == "Monthly industrial production":
+        return load_monthly_industrial_production().reset_index(), None, {}
     if name == "Quarterly production":
         return load_quarterly_production().reset_index(), None, {}
     if name == "Retail with calendars":
         dataset = load_retail_with_calendars()
-        return (
-            dataset.observations.reset_index(),
-            dataset.calendar_pool.reset_index(),
-            {
-                target: list(columns)
-                for target, columns in dataset.selections.items()
-            },
-        )
-    raise ValueError(f"unknown sample dataset: {name}")
+    elif name == "Tourism with calendars":
+        dataset = load_tourism_with_calendars()
+    elif name == "Industrial production with calendars":
+        dataset = load_industrial_production_with_calendars()
+    else:
+        raise ValueError(f"unknown sample dataset: {name}")
+    return (
+        dataset.observations.reset_index(),
+        dataset.calendar_pool.reset_index(),
+        {
+            target: list(columns)
+            for target, columns in dataset.selections.items()
+        },
+    )
 
 
 def _pasted_frame(

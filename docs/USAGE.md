@@ -37,12 +37,12 @@ result = adjust_dataframe(data, config=config, detailed=True)
 Each input column is processed independently. The common outputs are:
 
 ```python
-observed = result.observed
-calendar_adjusted = result.calendar_adjusted
-seasonally_adjusted = result.seasonally_adjusted
-trend = result.trend
-seasonal = result.seasonal
-irregular = result.irregular
+sa = result.sa
+ycal = result.ycal
+trend = result.component("t")
+sa_forecast = result.forecast("sa")
+complete_sa = result.combined("sa")
+status = result.status
 
 compact = result.to_compact_frame()
 forecasts = result.to_forecast_frame()
@@ -50,9 +50,19 @@ combined = result.to_combined_frame()
 summary = result.to_summary_frame()
 ```
 
-These are date-indexed DataFrames. For ten input columns, each historical
-component has ten columns. Forecast component dates begin after the final
-observation.
+Component selectors accept compact names (`y`, `ycal`, `sa`, `t`, `s`, `i`)
+or their descriptive names. They return date-indexed DataFrames; historical
+components have the same index and columns as the input. Forecast dates begin
+after the final observation. `status` is the concise property form of
+`to_summary_frame()`.
+
+Export one component to a plain CSV or several components to separate XLSX
+sheets:
+
+```python
+result.export("adjusted.csv", components=["sa"])
+result.export("adjusted.xlsx", components=["sa", "ycal"])
+```
 
 The summary has one row per input series and stable columns for method,
 specification, ARIMA notation, automatic selection, diagnostic and message

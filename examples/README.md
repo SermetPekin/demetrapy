@@ -29,6 +29,8 @@ python -m pip install -e ".[notebook]"
 | Summarize a TRAMO/SEATS batch for follow-up | `15_batch_summary.py` |
 | Generate an interactive analyst report | `16_html_report.py` |
 | Use a calendar pool with per-series mappings | `13_full_config_calendar_pool.py` |
+| Adjust synthetic tourism with calendar effects | `18_tourism_with_calendars.py` |
+| Adjust industrial production with target calendars | `19_industrial_production_with_calendars.py` |
 | Inspect components, forecasts, diagnostics, and ARIMA | `02_detailed_results.py` |
 | Configure advanced TRAMO/SEATS models | `08_advanced_tramoseats.py` |
 
@@ -45,13 +47,15 @@ included in the catalog below.
 | `16_html_report.py` | self-contained HTML report with Plotly components, SI, diagnostics, and messages |
 | `12_multi_variable_emissions.py` | six TRAMO/SEATS component DataFrames for ten monthly targets |
 | `13_full_config_calendar_pool.py` | extended TRAMO/SEATS parameters, shared variable pool, and target mappings |
+| `18_tourism_with_calendars.py` | tourism adjustment with working-day, holiday, and moving-Easter variables |
+| `19_industrial_production_with_calendars.py` | industrial adjustment with working-day, shutdown, and heating variables |
 | `02_detailed_results.py` | history, forecasts, diagnostics, messages, and fitted model |
 | `04_tramoseats_models.py` | automatic and explicit ARIMA with SEATS settings |
 | `08_advanced_tramoseats.py` | advanced TRAMO/SEATS and a user-defined calendar |
 | `06_calendar_variables.py` | separate calendar selections for two targets |
 | `11_quarterly_detailed_results.py` | quarterly detailed output and forward dates |
 | `05_quarterly_models.py` | quarterly DataFrame, CSV, and sequence inputs |
-| `01_basic_models.py` | typed TRAMO/SEATS and X13 configuration |
+| `01_basic_models.py` | typed configurations plus adjusted and forecast result access patterns |
 | `07_compare_methods.py` | component-level TRAMO/SEATS and X13 comparison |
 | `03_x13_models.py` | X13/X11 filters, calendars, and outlier settings |
 | `09_bulk_processing_audit.py` | fault-tolerant batch processing and audit records |
@@ -65,6 +69,10 @@ The loaders return fresh, deterministic pandas objects:
 | --- | --- |
 | `load_monthly_emissions()` | 120 monthly dates x 10 emissions sectors |
 | `load_emissions_with_calendars()` | emissions plus an 8-variable pool and mappings |
+| `load_monthly_tourism()` | 144 monthly dates x hotel nights and international arrivals, with Easter, level-shift, and temporary-shock effects |
+| `load_tourism_with_calendars()` | tourism plus working-day, holiday, and moving-Easter variables and mappings |
+| `load_monthly_industrial_production()` | 144 monthly dates x manufacturing, mining, and utilities, with working-day effects, a recession dip, and outliers |
+| `load_industrial_production_with_calendars()` | industrial production plus working-day, shutdown, and heating variables and mappings |
 | `load_monthly_retail()` | 120 monthly dates x sales and orders |
 | `load_retail_with_calendars()` | retail data plus a wider calendar pool |
 | `load_quarterly_production()` | 80 quarterly dates x production |

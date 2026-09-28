@@ -15,14 +15,19 @@ from .engine import (
 	adjust,
 )
 from .dataframe import DataFrameAdjustmentResult, adjust_dataframe
+from .date_range import DateRange, DateRangeMonth, DateRangeQuarter
 from .csv_io import adjust_csv
 from .datasets import (
 	CalendarDataset,
 	load_emissions_with_calendars,
+	load_industrial_production_with_calendars,
 	load_monthly_emissions,
+	load_monthly_industrial_production,
 	load_monthly_retail,
+	load_monthly_tourism,
 	load_quarterly_production,
 	load_retail_with_calendars,
+	load_tourism_with_calendars,
 )
 from .interactive import plot_adjustment_interactive
 from .plotting import plot_adjustment
@@ -38,6 +43,9 @@ __all__ = [
 	"CalendarDataset",
 	"FORECAST_COMPONENTS",
 	"DataFrameAdjustmentResult",
+	"DateRange",
+	"DateRangeMonth",
+	"DateRangeQuarter",
 	"OutputSeries",
 	"ProcessingMessage",
 	"RESULT_SCHEMA_VERSION",
@@ -47,10 +55,14 @@ __all__ = [
 	"adjust_csv",
 	"adjust_dataframe",
 	"load_emissions_with_calendars",
+	"load_industrial_production_with_calendars",
 	"load_monthly_emissions",
+	"load_monthly_industrial_production",
 	"load_monthly_retail",
+	"load_monthly_tourism",
 	"load_quarterly_production",
 	"load_retail_with_calendars",
+	"load_tourism_with_calendars",
 	"plot_adjustment",
 	"plot_adjustment_interactive",
 ]

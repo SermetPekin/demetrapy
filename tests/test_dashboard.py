@@ -69,6 +69,12 @@ class DashboardHelperTest(unittest.TestCase):
         monthly, monthly_calendar, monthly_mapping = _sample_inputs(
             "Monthly retail"
         )
+        tourism, tourism_calendar, tourism_mapping = _sample_inputs(
+            "Monthly tourism"
+        )
+        industry, industry_calendar, industry_mapping = _sample_inputs(
+            "Monthly industrial production"
+        )
         quarterly, quarterly_calendar, quarterly_mapping = _sample_inputs(
             "Quarterly production"
         )
@@ -76,6 +82,18 @@ class DashboardHelperTest(unittest.TestCase):
         self.assertEqual(list(monthly.columns), ["date", "sales", "orders"])
         self.assertIsNone(monthly_calendar)
         self.assertEqual(monthly_mapping, {})
+        self.assertEqual(
+            list(tourism.columns),
+            ["date", "hotel_nights", "international_arrivals"],
+        )
+        self.assertIsNone(tourism_calendar)
+        self.assertEqual(tourism_mapping, {})
+        self.assertEqual(
+            list(industry.columns),
+            ["date", "manufacturing", "mining", "utilities"],
+        )
+        self.assertIsNone(industry_calendar)
+        self.assertEqual(industry_mapping, {})
         self.assertEqual(list(quarterly.columns), ["quarter", "production"])
         self.assertIsNone(quarterly_calendar)
         self.assertEqual(quarterly_mapping, {})
@@ -88,6 +106,26 @@ class DashboardHelperTest(unittest.TestCase):
         self.assertEqual(list(observations.columns), ["date", "sales", "orders"])
         self.assertIsNotNone(calendar_pool)
         self.assertEqual(mapping["sales"], ["retail_days"])
+
+        tourism, tourism_pool, tourism_mapping = _sample_inputs(
+            "Tourism with calendars"
+        )
+        self.assertEqual(
+            list(tourism.columns),
+            ["date", "hotel_nights", "international_arrivals"],
+        )
+        self.assertIn("easter", tourism_pool.columns)
+        self.assertIn("easter", tourism_mapping["hotel_nights"])
+
+        industry, industry_pool, industry_mapping = _sample_inputs(
+            "Industrial production with calendars"
+        )
+        self.assertEqual(
+            list(industry.columns),
+            ["date", "manufacturing", "mining", "utilities"],
+        )
+        self.assertIn("heating_days", industry_pool.columns)
+        self.assertIn("heating_days", industry_mapping["utilities"])
         self.assertEqual(mapping["orders"], ["retail_days", "delivery_days"])
 
     def test_rejects_unknown_sample(self) -> None:

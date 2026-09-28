@@ -31,15 +31,21 @@ result = adjust_dataframe(
     detailed=True,
 )
 
-adjusted = result.seasonally_adjusted
-forecasts = result.to_forecast_frame()
+sa = result.sa
+ycal = result.ycal
+adjusted_forecast = result.adjusted_forecast
+all_forecasts = result.to_forecast_frame()
 
-print(adjusted.tail())
-print(forecasts.xs("seasonally_adjusted", axis="columns", level="component"))
+print(sa.tail())
+print(ycal.tail())
+print(adjusted_forecast.head())
 ```
 
-The component attributes are date-indexed DataFrames with the same ten columns.
-Forecasts begin after the last observation.
+`sa` and `ycal` are date-indexed DataFrames with the same shape and columns as
+the input. They alias `seasonally_adjusted` and `calendar_adjusted`; `adjusted`
+is also available as a descriptive alias for `sa`. Use `to_forecast_frame()`
+when all forecast components are needed. Forecasts begin after the last
+observation.
 
 ## Inspect the Fitted Model
 

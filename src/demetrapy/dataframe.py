@@ -32,6 +32,11 @@ _FORECAST_ALIASES = {
     name: f"{alias}_f" for name, alias in _COMPONENT_ALIASES.items()
 }
 
+_COMPONENT_NAMES = {
+    **{name: name for name in _COMPONENT_ALIASES},
+    **{alias: name for name, alias in _COMPONENT_ALIASES.items()},
+}
+
 
 @dataclass(frozen=True)
 class DataFrameAdjustmentResult:
@@ -44,6 +49,63 @@ class DataFrameAdjustmentResult:
             return self.results[target]
         except KeyError as error:
             raise KeyError(f"unknown result series: {target}") from error
+
+    def component(self, name: str) -> Any:
+        """Return one historical component as an input-shaped DataFrame."""
+        return self._component(_component_name(name))
+
+    def forecast(self, name: str) -> Any:
+        """Return one forecast component as a date-indexed DataFrame."""
+        component = _component_name(name, forecast=True)
+        forecasts = self.to_forecast_frame()
+        if forecasts.empty:
+            return self.component(component).iloc[0:0].copy()
+        try:
+            return forecasts.xs(component, axis=1, level="component")
+        except KeyError:
+            return self.component(component).iloc[0:0].copy()
+
+    def combined(self, name: str) -> Any:
+        """Return one historical component followed by its forecast."""
+        pd = _pandas()
+        history = self.component(name)
+        forecast = self.forecast(name)
+        if forecast.empty:
+            return history.copy()
+        return pd.concat([history, forecast]).sort_index()
+
+    def export(
+        self,
+        path: str | PathLike[str],
+        *,
+        components: Sequence[str] = ("sa", "ycal"),
+    ) -> Path:
+        """Export selected components to CSV or separate XLSX sheets."""
+        pd = _pandas()
+        output = Path(path)
+        requested = (components,) if isinstance(components, str) else tuple(components)
+        if not requested:
+            raise ValueError("at least one export component is required")
+        names = [_component_name(name) for name in requested]
+        frames = {
+            _COMPONENT_ALIASES[name]: self.component(name)
+            for name in names
+        }
+
+        if output.suffix.lower() == ".csv":
+            frame = (
+                next(iter(frames.values()))
+                if len(frames) == 1
+                else pd.concat(frames, axis=1, names=("component", "series"))
+            )
+            frame.to_csv(output)
+        elif output.suffix.lower() == ".xlsx":
+            with pd.ExcelWriter(output) as writer:
+                for sheet_name, frame in frames.items():
+                    frame.to_excel(writer, sheet_name=sheet_name)
+        else:
+            raise ValueError("export path must end in .csv or .xlsx")
+        return output
 
     def to_compact_frame(self) -> Any:
         return self.components.rename(columns=_COMPONENT_ALIASES, level="component")
@@ -125,6 +187,11 @@ class DataFrameAdjustmentResult:
             }
         )
 
+    @property
+    def status(self) -> Any:
+        """Return stable processing and forecast metadata for every target."""
+        return self.to_summary_frame()
+
     def to_html_report(
         self,
         path: str | PathLike[str],
@@ -141,12 +208,32 @@ class DataFrameAdjustmentResult:
         return self._component("observed")
 
     @property
+    def adjusted(self) -> Any:
+        """Return the seasonally adjusted values as a DataFrame."""
+        return self.seasonally_adjusted
+
+    @property
+    def adjusted_forecast(self) -> Any:
+        """Return seasonally adjusted forecasts as a DataFrame."""
+        return self.forecast("sa")
+
+    @property
     def seasonally_adjusted(self) -> Any:
         return self._component("seasonally_adjusted")
 
     @property
+    def sa(self) -> Any:
+        """Return seasonally adjusted values using the compact component name."""
+        return self.seasonally_adjusted
+
+    @property
     def calendar_adjusted(self) -> Any:
         return self._component("calendar_adjusted")
+
+    @property
+    def ycal(self) -> Any:
+        """Return calendar-adjusted values using the compact component name."""
+        return self.calendar_adjusted
 
     @property
     def trend(self) -> Any:
@@ -162,6 +249,16 @@ class DataFrameAdjustmentResult:
 
     def _component(self, name: str) -> Any:
         return self.components.xs(name, axis=1, level="component")
+
+
+def _component_name(name: str, *, forecast: bool = False) -> str:
+    if not isinstance(name, str):
+        raise TypeError("component name must be a string")
+    candidate = name.removesuffix("_f") if forecast else name
+    try:
+        return _COMPONENT_NAMES[candidate]
+    except KeyError as error:
+        raise ValueError(f"unknown adjustment component: {name}") from error
 
 
 def adjust_dataframe(

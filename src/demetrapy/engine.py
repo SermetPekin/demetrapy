@@ -136,6 +136,16 @@ class AdjustmentResult:
         return self.components.observed
 
     @property
+    def adjusted(self) -> OutputSeries:
+        """Return the seasonally adjusted historical series."""
+        return self.seasonally_adjusted
+
+    @property
+    def adjusted_forecast(self) -> OutputSeries | None:
+        """Return the seasonally adjusted forecast when available."""
+        return self.forecasts.seasonally_adjusted
+
+    @property
     def seasonally_adjusted(self) -> OutputSeries:
         return self.components.seasonally_adjusted
 

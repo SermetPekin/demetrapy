@@ -22,6 +22,171 @@ def load_monthly_retail() -> pd.DataFrame:
     return load_retail_with_calendars().observations
 
 
+def load_monthly_tourism() -> pd.DataFrame:
+    """Return synthetic tourism series with shocks and changing seasonality."""
+    return load_tourism_with_calendars().observations
+
+
+def load_tourism_with_calendars() -> CalendarDataset:
+    """Return monthly tourism with calendar variables and target mappings."""
+    random_source = random.Random(20260928)
+    calendar_index = pd.date_range("2012-01-01", periods=168, freq="MS")
+    working_days = [
+        float(len(pd.bdate_range(timestamp, timestamp + pd.offsets.MonthEnd(0))))
+        for timestamp in calendar_index
+    ]
+    holiday_days = [
+        float(
+            1 + (timestamp.year + timestamp.month) % 3
+            if timestamp.month in (7, 8, 12)
+            else timestamp.month == 1
+        )
+        for timestamp in calendar_index
+    ]
+    easter = [
+        float(timestamp.month == (3 if timestamp.year % 2 else 4))
+        for timestamp in calendar_index
+    ]
+    calendar_pool = pd.DataFrame(
+        {
+            "working_days": working_days,
+            "holiday_days": holiday_days,
+            "easter": easter,
+            "unused_exchange_rate": [90.0 + 0.1 * position for position in range(168)],
+        },
+        index=calendar_index,
+    ).rename_axis("date")
+
+    observation_index = pd.date_range("2013-01-01", periods=144, freq="MS")
+    hotel_pattern = (
+        0.58, 0.62, 0.78, 0.91, 1.08, 1.28,
+        1.52, 1.48, 1.17, 0.94, 0.72, 0.66,
+    )
+    arrivals_pattern = (
+        0.52, 0.57, 0.73, 0.89, 1.12, 1.38,
+        1.68, 1.61, 1.21, 0.90, 0.65, 0.55,
+    )
+    hotel_nights = []
+    international_arrivals = []
+    for position in range(144):
+        calendar_position = position + 12
+        level_shift = 1.10 if position >= 72 else 1.0
+        temporary_shock = 0.28 if 86 <= position < 98 else 1.0
+        hotel_nights.append(
+            (82.0 + 0.32 * position)
+            * hotel_pattern[position % 12]
+            * level_shift
+            * temporary_shock
+            + 0.25 * (working_days[calendar_position] - 21.0)
+            + 2.5 * holiday_days[calendar_position]
+            + 5.0 * easter[calendar_position]
+            + random_source.gauss(0.0, 2.0)
+        )
+        international_arrivals.append(
+            (48.0 + 0.28 * position)
+            * arrivals_pattern[position % 12]
+            * level_shift
+            * temporary_shock
+            + 0.35 * (working_days[calendar_position] - 21.0)
+            + 3.0 * holiday_days[calendar_position]
+            + 4.0 * easter[calendar_position]
+            + random_source.gauss(0.0, 1.6)
+        )
+    observations = pd.DataFrame(
+        {"hotel_nights": hotel_nights, "international_arrivals": international_arrivals},
+        index=observation_index,
+    ).rename_axis("date")
+    return CalendarDataset(
+        observations=observations,
+        calendar_pool=calendar_pool,
+        selections={
+            "hotel_nights": ("working_days", "holiday_days", "easter"),
+            "international_arrivals": ("working_days", "holiday_days", "easter"),
+        },
+    )
+
+
+def load_monthly_industrial_production() -> pd.DataFrame:
+    """Return synthetic production with calendar effects, dips, and outliers."""
+    return load_industrial_production_with_calendars().observations
+
+
+def load_industrial_production_with_calendars() -> CalendarDataset:
+    """Return monthly industrial production with target calendar mappings."""
+    random_source = random.Random(20260929)
+    calendar_index = pd.date_range("2012-01-01", periods=168, freq="MS")
+    working_days = [
+        float(len(pd.bdate_range(timestamp, timestamp + pd.offsets.MonthEnd(0))))
+        for timestamp in calendar_index
+    ]
+    shutdown_days = [
+        float(
+            2 + timestamp.year % 3
+            if timestamp.month == 8
+            else 1 + timestamp.year % 2
+            if timestamp.month == 12
+            else 0
+        )
+        for timestamp in calendar_index
+    ]
+    heating_days = [
+        max(
+            0.0,
+            12.0 * math.cos(2.0 * math.pi * position / 12.0)
+            + 1.5 * math.sin(position / 5.0),
+        )
+        for position in range(168)
+    ]
+    calendar_pool = pd.DataFrame(
+        {
+            "working_days": working_days,
+            "shutdown_days": shutdown_days,
+            "heating_days": heating_days,
+            "unused_confidence_index": [100.0 + math.sin(position / 4.0) for position in range(168)],
+        },
+        index=calendar_index,
+    ).rename_axis("date")
+
+    observation_index = pd.date_range("2013-01-01", periods=144, freq="MS")
+    series = {
+        "manufacturing": (100.0, 0.18, 5.5, 0),
+        "mining": (78.0, -0.04, 3.0, 2),
+        "utilities": (65.0, 0.08, 8.5, 1),
+    }
+    values = {}
+    for name, (level, trend, amplitude, phase) in series.items():
+        observations = []
+        for position in range(144):
+            calendar_position = position + 12
+            recession_effect = -12.0 if 64 <= position < 72 else 0.0
+            outlier = 10.0 if position == 108 else (-8.0 if position == 37 else 0.0)
+            shutdown_effect = -1.6 * shutdown_days[calendar_position]
+            heating_effect = (
+                0.7 * heating_days[calendar_position] if name == "utilities" else 0.0
+            )
+            observations.append(
+                level
+                + trend * position
+                + amplitude * math.cos(2.0 * math.pi * (position - phase) / 12.0)
+                + 0.9 * (working_days[calendar_position] - 21.0)
+                + shutdown_effect
+                + heating_effect
+                + recession_effect
+                + outlier
+                + random_source.gauss(0.0, 1.0)
+            )
+        values[name] = observations
+    return CalendarDataset(
+        observations=pd.DataFrame(values, index=observation_index).rename_axis("date"),
+        calendar_pool=calendar_pool,
+        selections={
+            "manufacturing": ("working_days", "shutdown_days"),
+            "mining": ("working_days",),
+            "utilities": ("working_days", "heating_days"),
+        },
+    )
+
+
 def load_monthly_emissions() -> pd.DataFrame:
     """Return ten years of synthetic monthly emissions for ten sectors."""
     random_source = random.Random(20260915)
