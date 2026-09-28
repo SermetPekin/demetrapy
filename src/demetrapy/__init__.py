@@ -16,6 +16,7 @@ from .engine import (
 )
 from .dataframe import DataFrameAdjustmentResult, adjust_dataframe
 from .date_range import DateRange, DateRangeMonth, DateRangeQuarter
+from .comparison import AdjustmentComparisonResult, compare_adjustments
 from .csv_io import adjust_csv
 from .datasets import (
 	CalendarDataset,
