@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import math
+from numbers import Integral
 from os import PathLike
 from pathlib import Path
 from typing import Any
@@ -270,16 +271,20 @@ def adjust_dataframe(
     detailed: bool = False,
     **adjustment_options: Any,
 ) -> DataFrameAdjustmentResult:
-    """Adjust DataFrame columns with optional user-defined trading-day variables."""
+    """Adjust DataFrame columns with optional user-defined trading-day variables.
+
+    Calendar mapping targets and selections accept column names or one-based
+    integer column positions.
+    """
     pd = _pandas()
     frame = data.to_frame() if isinstance(data, pd.Series) else data
     _validate_frame(frame, "data", pd)
     data_frequency, data_periods = _frequency_and_periods(frame.index, "data", pd)
 
-    mapping = dict(user_defined_calendars or {})
-    unknown_targets = set(mapping) - set(frame.columns)
-    if unknown_targets:
-        raise ValueError(f"unknown target columns: {_column_list(unknown_targets)}")
+    mapping = _normalize_calendar_mapping(
+        user_defined_calendars or {},
+        frame.columns,
+    )
 
     reserved = {"frequency", "start_year", "start_period", "calendar_variables"}
     conflicting = reserved.intersection(adjustment_options)
@@ -311,9 +316,17 @@ def adjust_dataframe(
     detailed_frames = []
     results = {}
     for target in frame.columns:
-        selected_columns = list(mapping.get(target, ()))
-        if isinstance(mapping.get(target), (str, bytes)):
+        selection = mapping.get(target, ())
+        if isinstance(selection, (str, bytes)) or not isinstance(selection, Sequence):
             raise ValueError(f"calendar selection for '{target}' must be a sequence")
+        selected_columns = [
+            _resolve_column_selector(
+                selector,
+                pool.columns if pool is not None else (),
+                label="calendar_pool",
+            )
+            for selector in selection
+        ]
         if len(selected_columns) != len(set(selected_columns)):
             raise ValueError(f"calendar selection for '{target}' contains duplicates")
 
@@ -500,3 +513,36 @@ def _start_period(period: Any, frequency: str) -> int:
 
 def _column_list(columns: Any) -> str:
     return ", ".join(sorted(str(column) for column in columns))
+
+
+def _normalize_calendar_mapping(
+    mapping: Mapping[Any, Sequence[Any]],
+    target_columns: Any,
+) -> dict[Any, Sequence[Any]]:
+    normalized = {}
+    for selector, selection in mapping.items():
+        target = _resolve_column_selector(selector, target_columns, label="data")
+        if target in normalized:
+            raise ValueError(
+                f"calendar mappings contain duplicate target column: {target}"
+            )
+        normalized[target] = selection
+    return normalized
+
+
+def _resolve_column_selector(selector: Any, columns: Any, *, label: str) -> Any:
+    if isinstance(selector, bool):
+        raise TypeError(
+            f"{label} column selector must be a name or one-based integer position"
+        )
+    if isinstance(selector, Integral):
+        position = int(selector)
+        if position < 1 or position > len(columns):
+            raise ValueError(
+                f"{label} column position {position} is out of range; "
+                f"choose from 1 to {len(columns)}"
+            )
+        return columns[position - 1]
+    if selector not in columns:
+        raise ValueError(f"{label} column '{selector}' was not found")
+    return selector

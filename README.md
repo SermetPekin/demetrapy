@@ -113,12 +113,17 @@ result = adjust_dataframe(
     observations,
     calendar_pool=calendar_variables,
     user_defined_calendars={
-        "power": ["heating_days", "working_days"],
+        1: [1, 3],
         "transport": ["working_days", "holiday_days", "mobility_index"],
     },
     config=config,
 )
 ```
+
+Targets and calendar variables may be selected by name or by one-based column
+position. In the example, `1: [1, 3]` maps the first observation column to the
+first and third calendar-pool columns. Positions start at 1, not pandas' usual
+zero-based position.
 
 See the complete 10-series example with extended TRAMO/SEATS parameters:
 [examples/13_full_config_calendar_pool.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/13_full_config_calendar_pool.py).

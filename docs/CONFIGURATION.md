@@ -203,12 +203,17 @@ Precomputed calendar variables are supplied through a separate DataFrame:
 result = adjust_dataframe(
     observations,
     calendar_pool=calendar_pool,
-    user_defined_calendars={"sales": ["company_working_days"]},
+    user_defined_calendars={1: [1, "holiday_days"]},
     method="tramoseats",
     spec="RSAfull",
     detailed=True,
 )
 ```
+
+Mapping targets and calendar selections accept names or one-based column
+positions. Here, target position `1` uses calendar-pool position `1` and the
+named `holiday_days` column. Positions start at 1; zero and negative positions
+are invalid.
 
 The complete pool is registered in the processing context, while only selected
 columns are passed to JDemetra as UserDefined trading-day variables. Selecting

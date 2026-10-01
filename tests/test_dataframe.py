@@ -393,8 +393,8 @@ class DataFrameAdjustmentTest(unittest.TestCase):
                 data,
                 calendar_pool=pool,
                 user_defined_calendars={
-                    "sales": ["weekday_a"],
-                    "orders": ["weekday_b"],
+                    1: [1],
+                    "orders": [2],
                 },
                 method="tramoseats",
             )
@@ -418,6 +418,33 @@ class DataFrameAdjustmentTest(unittest.TestCase):
             [item["selected"] for item in calls[1][1]["calendar_variables"]],
             [False, True, False],
         )
+
+    def test_validates_one_based_calendar_column_positions(self) -> None:
+        index = pd.date_range("2024-01-01", periods=12, freq="MS")
+        data = pd.DataFrame({"sales": range(12), "orders": range(12)}, index=index)
+        pool = pd.DataFrame(
+            {"weekday": range(12), "holiday": range(12)},
+            index=index,
+        )
+
+        invalid_mappings = (
+            ({0: [1]}, "data column position 0"),
+            ({3: [1]}, "data column position 3"),
+            ({1: [0]}, "calendar_pool column position 0"),
+            ({1: [3]}, "calendar_pool column position 3"),
+            ({True: [1]}, "one-based integer position"),
+            ({1: [True]}, "one-based integer position"),
+            ({1: [1], "sales": [2]}, "duplicate target column"),
+            ({"sales": ["weekday", 1]}, "contains duplicates"),
+        )
+        for mapping, message in invalid_mappings:
+            with self.subTest(mapping=mapping):
+                with self.assertRaisesRegex((TypeError, ValueError), message):
+                    adjust_dataframe(
+                        data,
+                        calendar_pool=pool,
+                        user_defined_calendars=mapping,
+                    )
 
     def test_rejects_calendar_pool_that_does_not_cover_target(self) -> None:
         data_index = pd.date_range("2015-01-01", periods=36, freq="MS")
