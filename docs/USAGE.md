@@ -114,7 +114,7 @@ columns.
 
 ```python
 mapping = {
-    "power": ["heating_days", "cooling_days", "working_days"],
+    1: [1, 2, 3],
     "transport": ["working_days", "holiday_days", "mobility_index"],
     "industry": ["working_days", "industrial_days"],
 }
@@ -128,8 +128,11 @@ result = adjust_dataframe(
 ```
 
 Only mapped variables enter a target's model. An unmapped target uses no
-user-defined calendar variables. Unknown target or variable names raise a
-clear error.
+user-defined calendar variables. Mapping targets and calendar selections may
+mix names with one-based column positions. For example, `1: [1, 2, 3]` selects
+the first observation column and the first three pool columns. Position `0`,
+negative positions, and positions beyond the available columns are rejected.
+Unknown names also raise a clear error.
 
 The complete implementation is in
 [examples/13_full_config_calendar_pool.py](https://github.com/SermetPekin/demetrapy/blob/main/examples/13_full_config_calendar_pool.py).
